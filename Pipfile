@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "http://localhost:8080/simple"
+verify_ssl = false
+name = "local"
+
+[packages]
+json-decorator = {version = "*", index = "local"}
+
+boto3 = "1.24.5"
+
+[dev-packages]
+pytest = "*"
+black = "*"
+awscliv2 = "*"
+setuptools = "*"
+
+[requires]
+python_version = "3.10"
