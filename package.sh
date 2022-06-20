@@ -59,7 +59,10 @@ case $1 in
     "test")
         PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m pytest tests
     ;;
-
+    "python")
+        shift
+        PYTHONPATH="$PYTHONPATH:src" pyenv exec python $@
+    ;;
     "run")
         shift
         PYTHONPATH="$PYTHONPATH:src" pyenv exec $@ 
@@ -89,6 +92,9 @@ case $1 in
     ;;
     "push")
         scp -o "StrictHostKeyChecking=no" dist/*-0.0.* "${PUBLISH_USER}@${PUBLISH_SERVER}:~/packages/dev/"
+    ;;
+    "list")
+        pipenv graph
     ;;
 #
 # release environment
