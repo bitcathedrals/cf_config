@@ -70,6 +70,14 @@ case $1 in
     "repl")
         PYTHONPATH="$PYTHONPATH:src" pyenv exec ptpython
     ;;
+    "aws")
+        shift
+        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli $@
+    ;;
+    "cf-delete")
+        echo "attempting to delete stack: $1"
+        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation delete-stack --stack-name $1
+    ;;
 #
 #   build
 #

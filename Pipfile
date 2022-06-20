@@ -16,7 +16,7 @@ boto3 = "1.24.5"
 [dev-packages]
 pytest = "*"
 black = "*"
-awscliv2 = "*"
+awscli = "*"
 setuptools = "*"
 
 [requires]
