@@ -31,6 +31,7 @@ class CloudFormation:
 
         args = {
             'StackName': self.stack_name,
+            'Capabilities': ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
             'TemplateBody': template
         }
 
