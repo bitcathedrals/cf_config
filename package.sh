@@ -75,8 +75,12 @@ case $1 in
         PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli $@
     ;;
     "cf-delete")
-        echo "attempting to delete stack: $1"
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation delete-stack --stack-name $1
+        echo "attempting to delete stack: $2"
+        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation delete-stack --stack-name $2
+    ;;
+    "cf-describe")
+        echo "attempting to describe stack: $2"
+        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation describe-stacks --stack-name $2
     ;;
 #
 #   build
