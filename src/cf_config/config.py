@@ -81,19 +81,18 @@ class CloudConfig:
         self.environments['prod'].update(new_config)
 
     def update_from_directory(self, directory):
-        for path in _config_files:
+        for env, path in [(name, "%s.json" % name) for name in self.environments.keys()]:
             file = os.path.join(directory, path)
 
             if os.path.exists(file):
                 config_handle = open(file, 'r')
 
                 json_raw = config_handle.read()
+                config_handle.close()
 
                 config_dict = loads(json_raw)
 
                 if isinstance(config_dict, dict) and config_dict:
-                    env = path.split('.')[0]
-
                     self.environments[env].update(config_dict)
                 
 
