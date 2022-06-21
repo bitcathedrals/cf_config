@@ -1,9 +1,9 @@
 # Copyright Michael Mattie (2022) - michael.mattie.employers@gmail.com
 
 from json_decorator.json import json_fn
-from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute
+from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command
 
-from pprint import pprint
+import sys
 
 class CFBuilderRole(CloudFormationTemplate):
     policy_name = 'CloudFormationBuild'
@@ -79,12 +79,11 @@ if __name__ == '__main__':
 
     cloud = CloudFormationExecute('build-system')
 
-    # create = cloud.create_stack(CFBuilderRole(), project='learn')
+    template = CFBuilderRole()
 
-    # cloud.wait_for_complete(quiet=False)
+    def create_role():
+        cloud.create_stack(template, project='learn')
+        could.wait_for_complete(quiet=False)
 
-    #print("stack output is: " + pprint(cloud.stack_output()))
+    cloud_command(sys.argv, template, cloud, create_role)
 
-    #CFBuilderRole().pp()
-
-    print(CFBuilderRole().json())
