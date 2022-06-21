@@ -1,6 +1,6 @@
 # copyright (2022) Micheal Mattie  - michael.mattie.employers@gmail.com
 from abc import ABC, abstractmethod
-import os
+import os.path
 
 import boto3
 from botocore.config import Config
@@ -9,6 +9,7 @@ from collections import OrderedDict
 import re
 from pprint import pprint
 from time import sleep
+from json import loads, dumps
 
 from json_decorator.json import json_fn
 
@@ -189,9 +190,16 @@ def cloud_command(args, template, executor, create_wrapper):
     if command == "write":
         file_path = args[2]
 
+        table = {}
+
+        if os.path.isfile(file_path):
+            table = loads(open(file_path, 'r').read())
+
+        table.update(executor.output())
+
         file = open(file_path, 'w')
 
-        file.write(executor.output_json() + "\n")
+        file.write(dumps(table, indent=4, sort_keys=True) + "\n")
         file.close()
 
         return
