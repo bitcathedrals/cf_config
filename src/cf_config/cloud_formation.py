@@ -115,6 +115,22 @@ class CloudFormationExecute:
 
         return data
 
+    def events(self, event_filter=None, count=10):
+        execute = self.cf_client().describe_stack_events(StackName=self.stack_name)
+
+        events = []
+
+        if count:
+            events = execute['StackEvents'][0:min(len(execute['StackEvents']), int(count))]
+        else:
+            events = execute['StackEvents']
+
+        if event_filter:
+            events = [event for event in events if event_filter(event)]
+
+        return events
+
+
     @json_fn()
     def output_json(self):
         return self.output()
@@ -163,6 +179,16 @@ class CloudFormationExecute:
 
             sleep(1)
 
+def reasons_filter(events):
+    def extract_status(event):
+        status =  event['ResourceStatus']
+        
+        if 'ResourceStatusReason' in event:
+            status = "%s = %s" % (status, event['ResourceStatusReason'])
+
+        return status
+
+    return [extract_status(ev) for ev in events]
 
 def cloud_command(args, template, executor, create_wrapper):
     command = args[1]
@@ -185,6 +211,22 @@ def cloud_command(args, template, executor, create_wrapper):
         
     if command == "output":
         pprint(executor.output())
+        return
+
+    if command == "events":
+        if len(args) > 2:
+            pprint(executor.events(count=args[2]))
+            return
+
+        pprint(executor.events())
+        return
+
+    if command == "reasons":
+        if len(args) > 2:
+            pprint(reasons_filter(executor.events(count=args[2])))
+            return
+
+        pprint(reasons_filter(executor.events()))
         return
 
     if command == "write":
