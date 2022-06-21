@@ -3,59 +3,88 @@
 from json_decorator.json import json_fn
 from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute
 
-from json import dumps
+from pprint import pprint
 
 class CFBuilderRole(CloudFormationTemplate):
     policy_name = 'CloudFormationBuild'
-    policy_version = "2012-10-17"
-    resource = None
+    
+    assume_policy_version = "2012-10-17"
+    cf_policy_version = "2012-10-17"
+
+    assume_whitelist = "*"
+    
+    cf_whitelist = ["cloudformation:*"]
+    cf_resources = "*"
+
     IAM_role = "CFconfigBuildRole"
 
-    def __init__(self, *args, resource="*", **kwargs):
+    def __init__(self, *args, cf_resources=None, assume_whitelist=None, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.resource = resource
+        if cf_resources:
+            self.cf_resources = cf_resources
 
-    def IAM(self):
+        if assume_whitelist:
+            self.assume_whitelist = assume_whitelist
+
+    def build_role_resource(self):
         return {
-            "Type": "AWS::IAM::Policy",
-            "Properties": {
-                "PolicyName": self.policy_name,
-                "PolicyDocument": self.policy()
-            }
+            "AssumeRolePolicyDocument": self.build_role_policy(),
+            "Policies": [ self.build_cf_policy() ],
+            "RoleName": self.IAM_role
         }
+        
 
-    def policy(self):
+    def build_role_policy(self):
         return {
-            "Version": self.policy_version,
+            "Version": self.assume_policy_version,
             "Statement": [
-                self.allow_all()
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "*"},
+                    "Action": [ "sts:AssumeRole" ]
+                }
             ]
         }
 
-    def allow_all(self):
+    def build_cf_policy(self):
         return {
-            "Effect": "Allow",
-            "Action": ["cloudformation:*"],
-            "Resource": self.resource
+            "PolicyName": "cf_build_policy",
+            "PolicyDocument": {
+                "Version": self.cf_policy_version,
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": self.cf_whitelist,
+                        "Resource": self.cf_resources
+                    }
+                ]
+            }
         }
 
     def construct(self):
         self.build_template([
                                 self.build_resource(self.IAM_role,
-                                                    self.IAM())
+                                                    "AWS::IAM::Role",
+                                                    self.build_role_resource())
                             ],
                             [
-                                self.build_output(self.IAM_role, 
-                                                  "CFconfig:%s" % self.IAM_role,
-                                                  self.IAM_role)
+                                self.build_output("BuildSystemRoleName", 
+                                                  self.IAM_role),
+                                self.build_output("BuildSystemRoleARN",
+                                                  {"Fn::GetAtt" : [self.IAM_role, "Arn"] })
                             ])
 
 if __name__ == '__main__':
 
     cloud = CloudFormationExecute('build-system')
 
-    output = cloud.create_stack(CFBuilderRole(), project='learn')
+    # create = cloud.create_stack(CFBuilderRole(), project='learn')
 
-    print("got this: " + dumps(output))
+    # cloud.wait_for_complete(quiet=False)
 
+    #print("stack output is: " + pprint(cloud.stack_output()))
+
+    #CFBuilderRole().pp()
+
+    print(CFBuilderRole().json())
