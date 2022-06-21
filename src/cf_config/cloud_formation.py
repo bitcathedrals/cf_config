@@ -114,6 +114,10 @@ class CloudFormationExecute:
 
         return data
 
+    @json_fn()
+    def output_json(self):
+        return self.output()
+
     def status(self):
         execute = self.cf_client().describe_stacks(StackName=self.stack_name)
 
@@ -181,6 +185,17 @@ def cloud_command(args, template, executor, create_wrapper):
     if command == "output":
         pprint(executor.output())
         return
+
+    if command == "write":
+        file_path = args[2]
+
+        file = open(file_path, 'w')
+
+        file.write(executor.output_json() + "\n")
+        file.close()
+
+        return
+
 
     print("unkown command: %s" % command)
 
