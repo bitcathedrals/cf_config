@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     def create_role():
         cloud.create_stack(template, project='learn')
-        could.wait_for_complete(quiet=False)
+        cloud.wait_for_complete(quiet=False)
 
     cloud_command(sys.argv, template, cloud, create_role)
 
