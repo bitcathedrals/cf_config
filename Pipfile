@@ -11,7 +11,7 @@ name = "local"
 [packages]
 json-decorator = {version = "*", index = "local"}
 
-boto3 = "1.24.5"
+boto3 = "1.24.22"
 
 [dev-packages]
 pytest = "*"

@@ -2,88 +2,150 @@
 
 from json_decorator.json import json_fn
 from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command
+from cf_config.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, PARAMETER_ACCCOUNT
 
 import sys
 
-class CFBuilderRole(CloudFormationTemplate):
-    policy_name = 'CloudFormationBuild'
-    
-    assume_policy_version = "2012-10-17"
-    cf_policy_version = "2012-10-17"
+STACK_NAME = 'build-system'
+SYSTEM_NAME = 'build-system'
+COMPONENT_NAME = 'build-permissions'
+
+USER_NAME = 'DeployUser'
+GROUP_NAME = 'DeployGroup'
+
+class CFBuildSystem(CloudFormationTemplate):
+    ROLE_ACTION = "sts:AssumeRole"
+    INLINE_POLICY_VERSION = "2012-10-17"
+
+    ROLE_POLICY_NAME = 'CFRolePolicy'
+    GROUP_POLICY_NAME= 'CFGroupPolicy'
+    USER_POLICY_NAME = 'CFUserPolicy'
 
     assume_whitelist = "*"
-    
-    cf_whitelist = ["cloudformation:*"]
-    cf_resources = "*"
+    assume_operations = "cloudformation:*"
+    assume_resources = "*"
 
-    IAM_role = "CFconfigBuildRole"
+    IAM_ROLE = "CFconfigBuildRole"
+    IAM_GROUP = "CFconfigBuildGroup"
+    IAM_USER = "CFconfigBuildUser"
 
-    def __init__(self, *args, cf_resources=None, assume_whitelist=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, assume_resources=None, assume_whitelist=None):
+        super().__init__(
+            System=SYSTEM_NAME,
+            Component=COMPONENT_NAME
+        )
         
-        if cf_resources:
-            self.cf_resources = cf_resources
+        if assume_resources:
+            self.assume_resources = assume_resources
 
         if assume_whitelist:
             self.assume_whitelist = assume_whitelist
 
-    def build_role_resource(self):
+    def build_role_assume_policy(self):
         return {
-            "AssumeRolePolicyDocument": self.build_role_policy(),
-            "Policies": [ self.build_cf_policy() ],
-            "RoleName": self.IAM_role
+            "Version": self.INLINE_POLICY_VERSION,
+            "Statement": self.build_statement(
+                self.ROLE_ACTION,
+                Principal={
+                    "AWS": { 
+                        "Value" : self.build_reference(PARAMETER_ACCCOUNT) 
+                    }
+                }
+            )
         }
-        
 
     def build_role_policy(self):
-        return {
-            "Version": self.assume_policy_version,
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {"AWS": "*"},
-                    "Action": [ "sts:AssumeRole" ]
-                }
-            ]
-        }
+        return self.build_policy(
+            self.ROLE_POLICY_NAME,
+            self.build_statement(
+                self.assume_operations,
+                self.assume_resources,
+            )
+        )
 
-    def build_cf_policy(self):
-        return {
-            "PolicyName": "cf_build_policy",
-            "PolicyDocument": {
-                "Version": self.cf_policy_version,
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": self.cf_whitelist,
-                        "Resource": self.cf_resources
-                    }
-                ]
-            }
-        }
+
+    def build_group_policy(self):
+        return self.build_policy(
+            self.GROUP_POLICY_NAME,
+            self.build_statement(
+                self.ROLE_ACTION,
+                self.build_attribute(self.IAM_ROLE),
+                deny_other=True
+            )
+        )
 
     def construct(self):
-        self.build_template([
-                                self.build_resource(self.IAM_role,
-                                                    "AWS::IAM::Role",
-                                                    self.build_role_resource())
-                            ],
-                            [
-                                self.build_output("BuildSystemRoleName", 
-                                                  self.IAM_role),
-                                self.build_output("BuildSystemRoleARN",
-                                                  {"Fn::GetAtt" : [self.IAM_role, "Arn"] })
-                            ])
+        self.build_template(
+            [
+                self.build_resource(
+                    self.IAM_ROLE,
+                    ROLE_TYPE,
+                    self.build_role_policy(),
+                    RoleName=self.IAM_ROLE,
+                    AssumeRolePolicyDocument=self.build_role_assume_policy()
+                ),
+                                                    
+
+                self.build_resource(
+                    self.IAM_GROUP,
+                    GROUP_TYPE,
+                    self.build_group_policy()
+                ),
+
+
+                self.build_resource(
+                    self.IAM_USER,
+                    USER_TYPE,
+                    [],
+                    UserName=USER_NAME,
+                    Groups=[ self.IAM_GROUP ]
+                )
+
+            ],
+
+            [],
+
+            [
+                self.build_output(
+                    "BuildSystemGroupName",
+                    GROUP_NAME
+                ),
+
+                self.build_output(
+                    "BuildSystemGroupARN",
+                    self.build_attribute(self.IAM_GROUP)
+                ),
+
+                self.build_output(
+                    "BuildSystemUserName",
+                    USER_NAME
+                ),
+
+                self.build_output(
+                    "BuildSystemUserARN",
+                    self.build_attribute(self.IAM_USER)
+                ),
+
+                self.build_output(
+                    "BuildSystemRoleName", 
+                    self.IAM_ROLE
+                ),
+                    
+                self.build_output(
+                    "BuildSystemRoleARN",
+                    self.build_attribute(self.IAM_ROLE)
+                )
+            ],
+        )
 
 if __name__ == '__main__':
 
-    cloud = CloudFormationExecute('build-system')
+    cloud = CloudFormationExecute(
+        STACK_NAME,
+        template=CFBuildSystem(),
+        System=SYSTEM_NAME,
+        Component=COMPONENT_NAME
+    )
 
-    template = CFBuilderRole()
-
-    def create_role():
-        cloud.create_stack(template, project='learn')
+    if cloud_command(sys.argv, cloud):
         cloud.wait_for_complete(quiet=False)
-
-    cloud_command(sys.argv, template, cloud, create_role)
-

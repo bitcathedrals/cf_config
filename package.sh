@@ -61,7 +61,7 @@ case $1 in
     ;;
     "python")
         shift
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python $@
+        PYTHONPATH="$PYTHONPATH:src:CloudFormation:" pyenv exec python $@
     ;;
     "run")
         shift
@@ -74,17 +74,20 @@ case $1 in
         shift
         PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli $@
     ;;
-    "cf-delete")
+
+    "validate")
+        PYTHONPATH="$PYTHONPATH:src:CloudFormation:" pyenv exec python -m cloud_formation_role.py "validate"
+   ;;
+
+    "cli-delete")
         echo "attempting to delete stack: $2"
         PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation delete-stack --stack-name $2
     ;;
-    "cf-describe")
+    "cli-describe")
         echo "attempting to describe stack: $2"
         PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation describe-stacks --stack-name $2
     ;;
-#
-#   build
-#
+
     "build")
         pyenv exec python -m build
     ;;
