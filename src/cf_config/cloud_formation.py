@@ -245,8 +245,7 @@ class CloudFormationExecute:
 
         return assume['Credentials']
 
-#    @cached_property
-    @property
+    @cached_property
     def cloud_formation(self):                                                 
             creds = self.session_credentials
 
@@ -256,6 +255,12 @@ class CloudFormationExecute:
                 creds['SecretAccessKey'],
                 creds['SessionToken']
             )
+
+    def invalidate_cloud_formation(self):
+        del self.session_credentials
+        del self.cloud_formation
+
+        return
 
     def output(self):
         execute = self.cloud_formation.describe_stacks(StackName=self.stack_name)
