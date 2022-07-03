@@ -32,6 +32,7 @@ BUILT_STATUS = ['CREATE_COMPLETE', 'UPDATE_COMPLETE']
 
 def build_tags(**kwargs):
     tags = []
+
     for name, value in kwargs.items():
         tags.append(
             {
@@ -66,28 +67,30 @@ class CloudFormationTemplate(ABC):
             "Ref" : name 
         }
 
-    def build_resource(self, name, resource_type, *inline_policies, path="/", tags={}, **properties):
+    def build_resource(self, name, resource_type, *inline_policies, path="/", **properties):
 
         res = {
-            name: { 
-                "Type": resource_type,
-                "Path": path,
-                "Properties": { **properties },
-            }
+            name: OrderedDict([
+                ("Type", resource_type),
+                ("Path", path),
+            ])
         }
+
+        if properties:
+            res[name]["Properties"] = { **properties }
 
         if inline_policies:
             res[name]["Policies"] = inline_policies
 
-        if tags:
-            res[name]["Tags"] = tags
+        if self.tags:
+            res[name]["Tags"] = self.tags
 
         return res
 
     def build_statement(self, actions, resources=[], permission="Allow", deny_other=False, **extra_args):
-        statement = {
-            "Effect": permission,
-        }
+        statement = OrderedDict([
+            ("Effect", permission),
+        ])
 
         if actions:
             if isinstance(actions, list):
