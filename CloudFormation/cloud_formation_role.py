@@ -96,7 +96,6 @@ class CFBuildSystem(CloudFormationTemplate):
                 self.build_resource(
                     self.IAM_USER,
                     USER_TYPE,
-                    [],
                     UserName=USER_NAME,
                     Groups=[ self.IAM_GROUP ]
                 )

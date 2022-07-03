@@ -233,8 +233,7 @@ class CloudFormationExecute:
 
         tags = build_tags(**kwargs)
 
-#    @cached_property
-    @property
+    @cached_property
     def session_credentials(self):
         sts_client = boto3.client('sts')
 
