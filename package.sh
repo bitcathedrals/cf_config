@@ -67,16 +67,13 @@ case $1 in
         shift
         PYTHONPATH="$PYTHONPATH:src" pyenv exec $@ 
     ;;
-    "repl")
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec ptpython
-    ;;
     "aws")
         shift
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli $@
+        pyenv exec python -m awscli $@
     ;;
 
     "validate")
-        PYTHONPATH="$PYTHONPATH:src:CloudFormation:" pyenv exec python -m cloud_formation_role.py "validate"
+        pyenv exec python -m awscli cloudformation validate-template --template-body file://$2 --profile $AWS_PROFILE
    ;;
 
     "cli-delete")
