@@ -69,9 +69,7 @@ class CFBuildSystem(CloudFormationTemplate):
             "Statement": self.build_statement(
                 self.ROLE_ACTION,
                 Principal={
-                    "AWS": { 
-                        "Value" : self.build_reference(PARAMETER_ACCCOUNT) 
-                    }
+                    "AWS": self.build_reference(PARAMETER_ACCCOUNT)
                 }
             )
         }
@@ -107,21 +105,21 @@ class CFBuildSystem(CloudFormationTemplate):
                     AssumeRolePolicyDocument=self.build_role_assume_policy()
                 ),
                                                     
-
                 self.build_resource(
                     self.IAM_GROUP,
                     GROUP_TYPE,
-                    self.build_group_policy()
+                    self.build_group_policy(),
+                    GroupName=self.group_name,
+                    depends=self.environment + self.IAM_ROLE
                 ),
-
 
                 self.build_resource(
                     self.IAM_USER,
                     USER_TYPE,
                     UserName=self.user_name,
-                    Groups=[ self.group_name ]
+                    Groups=[ self.group_name ],
+                    depends=self.environment + self.IAM_GROUP
                 )
-
             ],
 
             [],

@@ -89,7 +89,7 @@ class CloudFormationTemplate(ABC):
             "Ref" : name 
         }
 
-    def build_resource(self, name, resource_type, *policies, path=None, **properties):
+    def build_resource(self, name, resource_type, *policies, path=None, depends=None, **properties):
         name = self.env + name
         
         res = (
@@ -115,7 +115,11 @@ class CloudFormationTemplate(ABC):
             if "Properties" not in res[1]:
                 res[1]["Properties"] = OrderedDict()
 
-            res[1]["Properties"]["Tags"] = self.tags
+            if res[1]["Type"] not in [ GROUP_TYPE ]:
+                res[1]["Properties"]["Tags"] = self.tags
+
+        if depends:
+            res[1]["DependsOn"] = depends
 
         return res
 
@@ -132,9 +136,9 @@ class CloudFormationTemplate(ABC):
 
         if resources:
             if isinstance(resources, list):
-                statement["Resources"] = resources
+                statement["Resource"] = resources
             else:
-                statement["Resources"] = [ resources ]
+                statement["Resource"] = [ resources ]
 
         if extra_args:
             statement.update(extra_args)
@@ -145,7 +149,7 @@ class CloudFormationTemplate(ABC):
             others = {
                 "Effect": "Deny",
                 "Action": statement["Action"],
-                "NotResource": statement["Resources"]
+                "NotResource": statement["Resource"]
             }
 
             constructed.append(others)
@@ -161,12 +165,10 @@ class CloudFormationTemplate(ABC):
             collect = collect + decl
 
         return {
-            name: {
-                "PolicyName" : name,
-                "PolicyDocument" : {
-                    "Version": POLICY_VERSION,
-                    "Statement" : collect
-                }
+            "PolicyName" : name,
+            "PolicyDocument" : {
+                "Version": POLICY_VERSION,
+                "Statement" : collect
             }
         }
         
@@ -280,7 +282,7 @@ class CloudFormationExecute:
         kwargs['region'] = region
         kwargs['environment'] = environment
 
-        tags = build_tags(**kwargs)
+        tags = build_tags(kwargs)
 
     @property
     def role_credentials(self):
@@ -335,7 +337,7 @@ class CloudFormationExecute:
         return data
 
     def events(self, *attributes, filter=None, count=DEFAULT_EVENT_LIMIT):
-        events = self.exisiting_stack.events.limit(count=count)
+        events = self.exisiting.events.limit(count=count)
 
         if not events:
             return []
@@ -407,7 +409,7 @@ class CloudFormationExecute:
     def json(self):
         return dumps(
             self.output,
-            indent=4
+            indent=2
         )
 
     def print(self):

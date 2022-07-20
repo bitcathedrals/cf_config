@@ -17,6 +17,9 @@ def reload_modules():
 
 update_search_path()
 
+
+pprint(sys.path)
+
 import cf_config.cloud_formation
 import deploy
 
@@ -26,16 +29,30 @@ import deploy
 
 # reload_modules()
 
-template = deploy.CFBuildSystem("dev")
+def debug_template(write=True):
+    template = deploy.CFBuildSystem("dev")
 
-# template.print()
+    if write:
+        file = open("deploy.json", "w")
 
-# print(template.json)
+        file.write(template.json)
 
-file = open("test.json", "w")
+        file.close()
 
-file.write(template.json)
+    return template
 
-file.close()
-# pprint(sys.path)
+def test_deploy():
+    cloud = deploy.CloudFormationExecute(
+        'test-stack',
+        debug_template(write=False),
+        'dev',
+        profile='root'
+    )
 
+    return cloud
+
+templ = debug_template()
+
+test_stack = test_deploy()
+
+test_stack.create()
