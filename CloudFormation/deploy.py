@@ -164,7 +164,6 @@ if __name__ == '__main__':
     parser.add_argument(  
                           'command',
                             type=str,
-                            nargs="+",
                             default='status',
                             help="specify the command to run"
                         )
@@ -172,7 +171,6 @@ if __name__ == '__main__':
     parser.add_argument(
                           'environment',
                           type=str,
-                          nargs="+",
                           default='dev',
                           help="specify the environment to target"
     )
@@ -211,8 +209,6 @@ if __name__ == '__main__':
                         )
 
     args = parser.parse_args()
-
-    pprint(vars(args))
 
     cloud = CloudFormationExecute(
         STACK_NAME,
