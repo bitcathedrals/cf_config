@@ -40,7 +40,7 @@ BUILT_IN_PROGRESS_STATUS = ['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBAC
 CF_RESOURCE = 'cloudformation'
 
 DEFAULT_EVENT_LIMIT = 100
-DEFAULT_STACK_LIMIT = 100
+DEFAULT_STACK_LIMIT = 1000
 
 def build_tags(given_tags):
     tags = []
@@ -395,7 +395,7 @@ class CloudFormationExecute:
 
     @property
     def finished(self):
-        result = self.events(
+        return self.events(
                 'logical_resource_id',
                 'resource_status',
                 'resource_status_reason',
@@ -497,7 +497,7 @@ class CloudFormationExecute:
             sleep(1)
 
 def cloud_command(args, executor):
-    command = args['command']
+    command = args.command
 
     if command == "template-json":
         print(executor.template_object.json + "\n")
