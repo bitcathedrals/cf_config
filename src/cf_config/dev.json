@@ -1,4 +1,0 @@
-{
-    "BuildSystemRoleARN": "arn:aws:iam::324189914596:role/CFconfigBuildRole",
-    "BuildSystemRoleName": "CFconfigBuildRole"
-}

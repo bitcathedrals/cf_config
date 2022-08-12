@@ -1,47 +1,192 @@
 # copyright (2022) Micheal Mattie  - michael.mattie.employers@gmail.com
 from abc import ABC, abstractmethod
 import os.path
+import logging
 
 import boto3
 from botocore.config import Config
 
 from collections import OrderedDict
-import re
+from functools import cached_property
+
 from pprint import pprint
 from time import sleep
 from json import loads, dumps
 
-from json_decorator.json import json_fn
+ENVIRONMENTS = ['dev', 'test', 'pre', 'prod']
 
 DEFAULT_REGION = 'us-west-2'
+DEBUG_STREAM = 'boto3.resources'
+
+BUILD_PROFILE = 'build-system'
+
+TEMPLATE_VERSION = "2010-09-09"
+POLICY_VERSION = "2012-10-17"
+
+USER_TYPE = "AWS::IAM::User"
+GROUP_TYPE = "AWS::IAM::Group"
+ROLE_TYPE = "AWS::IAM::Role"
+
+PARAMETER_ACCCOUNT = "AWS::AccountId"
+
+BUILT_COMPLETE_STATUS = ['CREATE_COMPLETE', 'UPDATE_COMPLETE']
+
+BUILT_FAILED_STATUS = ['CREATE_FAILED', 'UPDATE_FAILED']
+
+BUILT_ROLLBACK_STATUS = ['ROLLBACK_COMPLETE']
+
+BUILT_IN_PROGRESS_STATUS = ['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS']
+
+CF_RESOURCE = 'cloudformation'
+
+DEFAULT_EVENT_LIMIT = 100
+DEFAULT_STACK_LIMIT = 1000
+
+def build_tags(given_tags):
+    tags = []
+
+    for name, value in given_tags.items():
+        tags.append(
+            {
+                'Key': name,
+                'Value': value          
+            }
+        )
+
+    return tags
 
 class CloudFormationTemplate(ABC):
     built = None
+    
+    env = None
+    tags = []
+
+    def __init__(self, environment, **tags):
+        if environment not in ENVIRONMENTS:
+            raise ValueError("Environment '%s' is not supported" % environment)
+
+        self.env = environment
+        self.tags = build_tags(tags)
 
     def build_output(self, key, value):
-        return {
-            key: {
+        return (
+            key,
+            {
                 "Value": value
             }
+        )
+
+    def build_attribute(self, name, env=None, attribute="Arn"):
+        if env:
+            name = self.env + name
+        
+        return {
+            "Fn::GetAtt" : [name, attribute]
+         }
+
+    def build_reference(self, name):
+        return {
+            "Ref" : name 
         }
 
-    def build_resource(self, name, resource_type, properties):
+    def build_resource(self, name, resource_type, *policies, path=None, depends=None, **properties):
+        name = self.env + name
+        
+        res = (
+            name,
+            OrderedDict([
+                ("Type", resource_type)
+            ])
+        )
+
+        if path:
+            res[1]["Path"] = path
+
+        if properties:
+            res[1]["Properties"] = { **properties }
+
+        if policies:
+            if "Properties" not in res[1]:
+                res[1]["Properties"] = OrderedDict()
+
+            res[1]["Properties"]["Policies"] = policies
+
+        if self.tags:
+            if "Properties" not in res[1]:
+                res[1]["Properties"] = OrderedDict()
+
+            if res[1]["Type"] not in [ GROUP_TYPE ]:
+                res[1]["Properties"]["Tags"] = self.tags
+
+        if depends:
+            res[1]["DependsOn"] = depends
+
+        return res
+
+    def build_statement(self, actions, resources=[], permission="Allow", deny_other=False, **extra_args):
+        statement = OrderedDict([
+            ("Effect", permission)
+        ])
+
+        if actions:
+            if isinstance(actions, list):
+                statement["Action"] = actions
+            else:
+                statement["Action"] = [ actions ]
+
+        if resources:
+            if isinstance(resources, list):
+                statement["Resource"] = resources
+            else:
+                statement["Resource"] = [ resources ]
+
+        if extra_args:
+            statement.update(extra_args)
+
+        constructed = [ statement ]
+
+        if deny_other:
+            others = {
+                "Effect": "Deny",
+                "Action": statement["Action"],
+                "NotResource": statement["Resource"]
+            }
+
+            constructed.append(others)
+
+        return constructed
+
+    def build_policy(self, name, *statements):
+        name = self.env + name
+
+        collect = []
+
+        for decl in statements:
+            collect = collect + decl
 
         return {
-            name: { "Type": resource_type,
-                    "Properties": { **properties } }
+            "PolicyName" : name,
+            "PolicyDocument" : {
+                "Version": POLICY_VERSION,
+                "Statement" : collect
+            }
         }
+        
 
-    def build_template(self, resources, outputs):
-        self.built = OrderedDict([("AWSTemplateFormatVersion", "2010-09-09"),
-                                  ("Resources", {}),
-                                  ("Outputs", {})])
+    def build_template(self, resources, policies, outputs):
+        self.built = OrderedDict([
+                                  ("AWSTemplateFormatVersion", TEMPLATE_VERSION),
+                                  ("Resources", OrderedDict())
+                                ])
 
         for res in resources:
-            self.built["Resources"].update(res)
+            self.built["Resources"] = OrderedDict(resources)
 
-        for out in outputs:
-            self.built["Outputs"].update(out)
+        if policies:
+            self.built["Policies"] = policies
+
+        if outputs:
+            self.built["Outputs"] = OrderedDict(outputs)
 
         return self.built
 
@@ -49,19 +194,30 @@ class CloudFormationTemplate(ABC):
     def construct():
         pass
 
-    @json_fn()
-    def json(self):
+    @cached_property
+    def template(self):
         self.construct()
 
         return self.built
 
-    def pp(self):
-        self.construct()
+    @property
+    def json(self):
+        return dumps(
+            self.template,
+            indent=2
+        ) + "\n"
 
-        pprint(self.built)
+    @property
+    def python(self):
+        return self.template
+    
+    def print(self):
+        pprint(self.template)
+
+        return self.template
 
 
-def cloud_config(region=DEFAULT_REGION, retries=6, mode='standard'):
+def cf_default_config(region, retries=6, mode='standard'):
     return Config(
         region_name = region,
         signature_version = 'v4',
@@ -77,81 +233,258 @@ class CloudFormationExecute:
     stack_name = None
     config = None 
 
-    roleARN = None
+    profile = None
+    role = None
 
-    access_key = None 
-    secret_key = None
+    tags = []
 
-    client = None
+    template = None
 
-    def __init__(self, stack_name, ARN=None, config=cloud_config()):
-            self.stack_name = stack_name
-            self.roleARN = ARN
+    environment = None
 
+    def __init__(
+        self, 
+        stack_name, 
+        template,
+        environment,
+        region=DEFAULT_REGION,
+        role=None, 
+        profile=BUILD_PROFILE, 
+        config=None, 
+        debug=False,
+        **kwargs
+    ):
+        if environment not in ENVIRONMENTS:
+            raise ValueError("Environment '%s' is not supported" % environment)
+
+        self.stack_name = stack_name
+
+        self.template = template
+        self.environment = environment
+
+        if config:
             self.config = config
+        else:
+            self.config = cf_default_config(region)
 
-            self.access_key = os.environ['CF_ACCESS_KEY']
-            self.secret_key = os.environ['CF_SECRET_KEY']
+        session_default = {
+            'profile_name': profile
+        }
 
+        self.profile = profile
+        self.role = role
+            
+        boto3.setup_default_session(**session_default)
 
-    def cf_client(self):
-        if self.client is None:
-            self.client = boto3.client('cloudformation',
-                                       config=self.config,
-                                       aws_access_key_id=self.access_key,
-                                       aws_secret_access_key=self.secret_key)
-        return self.client
+        if debug:
+            boto3.set_stream_logger(DEBUG_STREAM, logging.DEBUG)
 
+        kwargs['region'] = region
+        kwargs['environment'] = environment
+
+        tags = build_tags(kwargs)
+
+    @property
+    def role_credentials(self):
+        sts_client = boto3.client('sts')
+
+        assume = sts_client.assume_role(
+            RoleArn=self.role,
+            RoleSessionName="CFBuildSession"
+        )
+
+        return assume['Credentials']
+
+    @property
+    def role_resource(self):
+            creds = self.role_credentials
+
+            return boto3.resource(
+                CF_RESOURCE,
+                aws_access_key_id=creds['AccessKeyId'],
+                aws_secret_access_key=creds['SecretAccessKey'],
+                aws_session_token=creds['SessionToken']
+            )
+
+    @property
+    def root_resource(self):
+        return boto3.resource(
+            CF_RESOURCE
+        )
+
+    @cached_property
+    def resource(self):
+        if self.profile == 'root':
+            return self.root_resource                                      
+
+        return self.role_resource
+
+    def reset_resource(self):
+        del self.resource
+        return None
+
+    @cached_property
+    def exisiting(self):
+        return self.resource.Stack(self.stack_name)
+
+    @property
     def output(self):
-        execute = self.cf_client().describe_stacks(StackName=self.stack_name)
-
-        if "Outputs" not in execute["Stacks"][0]:
-            return {}
-
         data = {}
 
-        for kv in execute["Stacks"][0]["Outputs"]:
-            data[kv['OutputKey']] = kv["OutputValue"]
+        for out in self.exisiting.outputs:
+            data[out['OutputKey']] = out['OutputValue']
 
         return data
 
-    @json_fn()
-    def output_json(self):
-        return self.output()
+    def events(self, *attributes, filter=None, count=DEFAULT_EVENT_LIMIT):
+        events = self.exisiting.events.limit(count=count)
 
+        if not events:
+            return []
+
+        summaries = []
+
+        for ev in events:
+            if filter and ev.resource_status not in filter:
+                continue
+
+            event_data = OrderedDict()
+
+            for requested in attributes:
+                event_data[requested] = getattr(ev, requested, None)
+
+            summaries.append(event_data)
+
+        if 'timestamp' in attributes:
+            return sorted(summaries, key=lambda x: x['timestamp'], reverse=True)
+
+        return summaries
+
+    @property
     def status(self):
-        execute = self.cf_client().describe_stacks(StackName=self.stack_name)
+        return self.events(
+                'logical_resource_id',
+                'resource_status',
+                'resource_status_reason',
+                'stack_id',
+                'timestamp',
+                count=1
+            )
 
-        if "StackStatus" in execute["Stacks"][0]:
-            return execute["Stacks"][0]["StackStatus"]
+    @property
+    def failure(self):
+        return self.events(
+                'logical_resource_id',
+                'resource_status',
+                'resource_status_reason',
+                'stack_id',
+                'timestamp',
+                filter=BUILT_FAILED_STATUS,
+            )
+
+    @property
+    def success(self):
+        return self.events(
+                'logical_resource_id',
+                'resource_status',
+                'resource_status_reason',
+                'stack_id',
+                'timestamp',
+                filter=BUILT_COMPLETE_STATUS
+            )
+
+    @property
+    def finished(self):
+        return self.events(
+                'logical_resource_id',
+                'resource_status',
+                'resource_status_reason',
+                'stack_id',
+                'timestamp',
+                filter=BUILT_COMPLETE_STATUS + BUILT_FAILED_STATUS + BUILT_ROLLBACK_STATUS,
+                count=1
+            )
+
+    @property
+    def json(self):
+        return dumps(
+            self.output,
+            indent=2
+        )
+
+    def print(self):
+        pprint(self.output)
+        return
+
+    @property
+    def template_object(self):
+        return self.template
+
+    def pending(self):
+        return not self.finished
+
+    def find(
+            self,  
+            name=None, 
+            status_filter=BUILT_COMPLETE_STATUS, 
+            count=DEFAULT_STACK_LIMIT
+        ):
+        
+        if not name:
+            name = self.stack_name
+
+        found = []
+
+        for stack in self.resource.stacks.limit(count=count):
+            if stack.stack_name == name and stack.stack_status in status_filter:
+                found.append(stack)
+
+        return found
+
+    def create(self, rollback=True, **kwargs):
+
+        create = {
+            'StackName': self.stack_name,
+            'DisableRollback': not rollback,
+            'Capabilities': ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
+            'TemplateBody': self.template.json
+        }
+
+        if self.tags:
+            create['Tags'] = self.tags
+
+        if kwargs:
+            create.update(kwargs)
+
+        return self.resource.create_stack(**create)
+
+    def update(self, stack, rollback=True, **kwargs):
+        update = {
+            'StackName': self.stack_name,
+            'DisableRollback': not rollback,
+            'Capabilities': ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
+            'TemplateBody': self.template.json
+        }
+
+        if self.tags:
+            update['Tags'] = self.tags
+
+        if kwargs:
+            update.update(kwargs)
+
+        return stack.update(update)
+
+    def build(self, rollback=True):
+        look = self.find()
+
+        if look:
+            return self.existing.update(rollback)
+        else:
+            return self.create(rollback)
 
         return None
 
-    def pending(self):
-        status = self.status()
-
-        if re.search(r'.*IN_PROGRESS$', status) is None:
-            return None
-
-        return status
-
-    def create_stack(self, template, project=None):
-
-        args = {
-            'StackName': self.stack_name,
-            'Capabilities': ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
-            'TemplateBody': template.json()
-        }
-
-        if self.roleARN:
-            args['RoleARN'] = self.roleARN
-
-        if project:
-            args['Tags'] = [{'Key': 'project', 'Value': project}]
-
-        return self.cf_client().create_stack(**args)
-
-    def wait_for_complete(self, quiet=True):
+    def wait(self, quiet=True):
         while True:
             pending = self.pending()
 
@@ -159,54 +492,71 @@ class CloudFormationExecute:
                 break
 
             if not quiet:
-                print(self.stack_name + " status: " + pending)
+                print(self.stack_name + " status: " + getattr(pending[0],'resource_status_reason','unknown'))
 
             sleep(1)
 
+def cloud_command(args, executor):
+    command = args.command
 
-def cloud_command(args, template, executor, create_wrapper):
-    command = args[1]
+    if command == "template-json":
+        print(executor.template_object.json + "\n")
+        return False
 
-    if command == "print":
-        template.pp()
-        return
+    if command == "template-print":
+        executor.template_object.print()
+        return False
 
-    if command == "json":
-        print(template.json())
-        return
-
-    if command == "create":
-        create_wrapper()
-        return
+    if command == "build":
+        executor.build()
+        return True
 
     if command == "status":
-        pprint(executor.status())
-        return
+        pprint(executor.status)
+        return False
         
-    if command == "output":
-        pprint(executor.output())
-        return
+    if command == "output-json":
+        print(executor.json)
+        return False
+
+    if command  == "output-print":
+        executor.print()
+        return False
+
+    if command == "events":
+        pprint(executor.events(count=args.count))
+        return False
 
     if command == "write":
-        file_path = args[2]
+        if not 'config_file' in args:
+            print("you must specify a file to merge config data with.")
+            return False
+
+        merge = args['config_file']
 
         table = {}
 
-        if os.path.isfile(file_path):
-            table = loads(open(file_path, 'r').read())
+        if os.path.isfile(merge):
+            table = loads(open(merge, 'r').read())
 
-        table.update(executor.output())
+        table.update(executor.output)
 
-        file = open(file_path, 'w')
+        file = open(merge, 'w')
 
-        file.write(dumps(table, indent=4, sort_keys=True) + "\n")
+        file.write(
+            dumps(
+                table, 
+                indent=4, 
+                sort_keys=True)
+            + "\n"
+        )
+        
         file.close()
 
-        return
+        return False
 
-
-    print("unkown command: %s" % command)
-
+    print("unknown command: %s" % command)
+    return False
 
 
 
