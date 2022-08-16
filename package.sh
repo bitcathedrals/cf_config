@@ -103,7 +103,7 @@ case $1 in
         pyenv rehash
     ;;
     "push")
-        scp -o "StrictHostKeyChecking=no" dist/*-0.0.* "${PUBLISH_USER}@${PUBLISH_SERVER}:~/packages/dev/"
+        cp dist/*-0.0.* ~/coding/python-packages/local/
     ;;
     "list")
         pipenv graph
