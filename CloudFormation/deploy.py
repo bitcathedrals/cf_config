@@ -1,7 +1,7 @@
 # Copyright Michael Mattie (2022) - michael.mattie.employers@gmail.com
 
 from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command, BUILD_PROFILE
-from cf_config.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, PARAMETER_ACCCOUNT
+from cf_config.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, ACCESS_TYPE, PARAMETER_ACCCOUNT
 
 import sys
 import argparse
@@ -32,6 +32,10 @@ class CFBuildSystem(CloudFormationTemplate):
     IAM_ROLE = "CFconfigBuildRole"
     IAM_GROUP = "CFconfigBuildGroup"
     IAM_USER = "CFconfigBuildUser"
+    IAM_CREDENTIALS = "CFconfigBuilderCredentails"
+
+    IAM_ACCESS_ID = "CFconfigBuildAccessId"
+    IAM_ACCESS_KEY = "CFconfigBuildAccessKey"
 
     environment = None
 
@@ -119,6 +123,13 @@ class CFBuildSystem(CloudFormationTemplate):
                     UserName=self.user_name,
                     Groups=[ self.group_name ],
                     depends=self.environment + self.IAM_GROUP
+                ),
+
+                self.build_resource(
+                    self.IAM_CREDENTIALS,
+                    ACCESS_TYPE,
+                    UserName=self.build_reference(self.environment + self.IAM_USER),
+                    depends=self.environment + self.IAM_USER
                 )
             ],
 
@@ -153,7 +164,17 @@ class CFBuildSystem(CloudFormationTemplate):
                 self.build_output(
                     "BuildSystemRoleARN",
                     self.build_attribute(self.IAM_ROLE, env=self.environment)
-                )
+                ),
+
+                self.build_output(
+                    "BuildUserAccessId",
+                    self.build_reference(self.IAM_CREDENTIALS, env=self.environment)
+                ),
+
+                self.build_output(
+                    "BuildUserAccessSecret",
+                    self.build_attribute(self.IAM_CREDENTIALS, env=self.environment, attribute="SecretAccessKey")
+                )    
             ],
         )
 

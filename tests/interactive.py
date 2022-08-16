@@ -55,4 +55,14 @@ templ = debug_template()
 
 test_stack = test_deploy()
 
-test_stack.create()
+test_stack.build()
+
+pprint(test_stack.status)
+
+pprint(test_stack.success)
+
+pprint(test_stack.finished)
+
+print(test_stack.json)
+
+print(test_stack.find(name='test-stack'))

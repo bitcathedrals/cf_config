@@ -26,6 +26,7 @@ POLICY_VERSION = "2012-10-17"
 USER_TYPE = "AWS::IAM::User"
 GROUP_TYPE = "AWS::IAM::Group"
 ROLE_TYPE = "AWS::IAM::Role"
+ACCESS_TYPE = "AWS::IAM::AccessKey"
 
 PARAMETER_ACCCOUNT = "AWS::AccountId"
 
@@ -33,7 +34,7 @@ BUILT_COMPLETE_STATUS = ['CREATE_COMPLETE', 'UPDATE_COMPLETE']
 
 BUILT_FAILED_STATUS = ['CREATE_FAILED', 'UPDATE_FAILED']
 
-BUILT_ROLLBACK_STATUS = ['ROLLBACK_COMPLETE']
+BUILT_ROLLBACK_STATUS = ['ROLLBACK_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE']
 
 BUILT_IN_PROGRESS_STATUS = ['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBACK_IN_PROGRESS']
 
@@ -84,9 +85,14 @@ class CloudFormationTemplate(ABC):
             "Fn::GetAtt" : [name, attribute]
          }
 
-    def build_reference(self, name):
+    def build_reference(self, name, env=None):
+        identifier = name
+
+        if env:
+            identifier = env + name
+        
         return {
-            "Ref" : name 
+            "Ref" : identifier
         }
 
     def build_resource(self, name, resource_type, *policies, path=None, depends=None, **properties):
@@ -115,7 +121,7 @@ class CloudFormationTemplate(ABC):
             if "Properties" not in res[1]:
                 res[1]["Properties"] = OrderedDict()
 
-            if res[1]["Type"] not in [ GROUP_TYPE ]:
+            if res[1]["Type"] not in [ GROUP_TYPE, ACCESS_TYPE ]:
                 res[1]["Properties"]["Tags"] = self.tags
 
         if depends:
@@ -324,7 +330,7 @@ class CloudFormationExecute:
         return None
 
     @cached_property
-    def exisiting(self):
+    def existing(self):
         return self.resource.Stack(self.stack_name)
 
     @property
@@ -426,7 +432,7 @@ class CloudFormationExecute:
     def find(
             self,  
             name=None, 
-            status_filter=BUILT_COMPLETE_STATUS, 
+            status_filter=BUILT_COMPLETE_STATUS + BUILT_ROLLBACK_STATUS + BUILT_FAILED_STATUS, 
             count=DEFAULT_STACK_LIMIT
         ):
         
@@ -458,7 +464,7 @@ class CloudFormationExecute:
 
         return self.resource.create_stack(**create)
 
-    def update(self, stack, rollback=True, **kwargs):
+    def update(self, rollback=True, **kwargs):
         update = {
             'StackName': self.stack_name,
             'DisableRollback': not rollback,
@@ -472,15 +478,15 @@ class CloudFormationExecute:
         if kwargs:
             update.update(kwargs)
 
-        return stack.update(update)
+        return self.existing.update(**update)
 
     def build(self, rollback=True):
-        look = self.find()
+        search = self.find()
 
-        if look:
-            return self.existing.update(rollback)
+        if search:
+            return self.update(rollback=rollback)
         else:
-            return self.create(rollback)
+            return self.create(rollback=rollback)
 
         return None
 

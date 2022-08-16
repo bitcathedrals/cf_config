@@ -4,12 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [[source]]
-url = "http://localhost:8080/simple"
+url = "http://bitcathedrals.com/python"
 verify_ssl = false
 name = "local"
 
 [packages]
-json-decorator = {version = "*", index = "local"}
 
 boto3 = "1.24.22"
 
