@@ -1,7 +1,0 @@
-README (Version 0.1.0)
-
-This is an alpha release of cf-config.
-
-It includes support for generating CloudFormation templates with a python
-interface, and executing stack operations. Soon it will also include support
-for configuration management in the application: lambda or docker.
