@@ -66,3 +66,11 @@ pprint(test_stack.finished)
 print(test_stack.json)
 
 print(test_stack.find(name='test-stack'))
+
+from cf_config.cloud_config import CloudConfig
+
+test_dir="/Users/michaelmattie/coding/cf-config/tests"
+
+config = CloudConfig(test_dir,"root")
+
+config.write_module(test_dir,"test_module")

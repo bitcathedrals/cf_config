@@ -1,6 +1,6 @@
 import pytest
 
-from cf_config.config import CloudConfig
+from cf_config.cloud_config import CloudConfig
 
 
 @pytest.fixture()

@@ -16,7 +16,8 @@ boto3 = "1.24.22"
 pytest = "*"
 black = "*"
 awscli = "*"
-setuptools = "*"
+
+build = "*"
 
 [requires]
 python_version = "3.10"

@@ -337,13 +337,13 @@ class CloudFormationExecute:
     def output(self):
         data = {}
 
-        for out in self.exisiting.outputs:
+        for out in self.existing.outputs:
             data[out['OutputKey']] = out['OutputValue']
 
         return data
 
     def events(self, *attributes, filter=None, count=DEFAULT_EVENT_LIMIT):
-        events = self.exisiting.events.limit(count=count)
+        events = self.existing.events.limit(count=count)
 
         if not events:
             return []
