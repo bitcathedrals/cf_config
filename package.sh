@@ -93,43 +93,35 @@ case $1 in
 # dev environment
 #
     "pull")
-        pipenv install --skip-lock
-        pyenv rehash
+        pyenv exec python -m pipenv install --skip-lock
+        pyenv exec python -m pyenv rehash
     ;;
     "all")
-        python -m pip install -U pip
-        python -m pip install -U pipenv
-        pipenv install --dev --skip-lock
+        pyenv exec python -m pip install -U pip
+        pyenv exec python -m pip install -U pipenv
+        pyenv exec python -m pipenv install --dev --skip-lock
         pyenv rehash
     ;;
     "push")
-        cp dist/*-0.0.* ~/coding/python-packages/local/
+        cp dist/* ~/coding/python-packages/local/
     ;;
     "list")
-        pipenv graph
+        pyenv exec python -m pipenv graph
     ;;
 #
 # release environment
 #
     "freeze")
-        pipenv lock
+        pyenv exec python -m pipenv lock
     ;;
     "requirements")
-        pipenv run python -m pip freeze
+        pyenv exec python -m pipenv run python -m pip freeze
     ;;
     "release")
-        pyenv exec python -m pip -U pip
-        python -m pip install -U pipenv
-        pipenv install --ignore-pipfile
+        pyenv exec python -m pyenv -m pip -U pip
+        pyenv exec python -m pyenv install -U pipenv
+        pyenv exec python -m pipenv install --ignore-pipfile
         pyenv rehash
-    ;;
-
-#
-# publish
-#
-
-    "publish")
-        scp -o "StrictHostKeyChecking=no" dist/*-[0-9]*.[1-9]*.* "${PUBLISH_USER}@${PUBLISH_SERVER}:~/packages/release/"
     ;;
     *)
         echo "unknown command."
