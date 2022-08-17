@@ -1,0 +1,7 @@
+{
+    "env": "dev",
+    "stacks": ["test-stack"],
+    "ignore": ["BuildUserAccessSecret", "BuildUserAccessId"],
+
+    "AppName": "tests"
+}
