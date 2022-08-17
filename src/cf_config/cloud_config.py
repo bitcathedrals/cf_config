@@ -9,52 +9,66 @@ from functools import cached_property
 
 from .cloud_formation import CloudFormationExecute
 
+from pprint import pprint
+
 class CloudConfig:
     environment = None
     profile = None
     config_dir = None
 
+    ignore = []
+
+    stacks_list = {}
+        
     table = {}
 
-    @cached_property
-    def stack_list(self):
-        f = open(self.config_dir + "/stacks.json", "r")
+    reserved = [ "env", "stacks", "ignore" ]
 
-        stack_file = loads(f.read())    
+    def insert_into_table(self, key, value, source="static"):
+        print(f"[%s]: adding key -> %s" % (source, key))
+        self.table[source + "_" + key] = value
 
-        self.environment = stack_file["env"]
-
-        return stack_file["stacks"]
-        
     def read_stack_outputs(self):
-        for stack_name in self.stack_list:
+        for stack_name in self.stacks_list:
             stack = CloudFormationExecute(stack_name,
                                           None,
                                           self.environment,
                                           profile=self.profile)
 
             for key,value in stack.output.items():
-                self.table[stack_name + "_" + key] = value
+                if key not in self.ignore:
+                    self.insert_into_table(key, value, source=stack_name)
+                else:
+                    print(f"[%s]: ignoring key -> %s" % (stack_name,key))
 
-    def read_static_config(self):
-        static_path = self.config_dir + "/static.json"
+    def read_config(self):
+        config_path = self.config_dir + "/cloud-config.json"
 
-        if not path.isfile(static_path):
-            return
+        if not path.isfile(config_path):
+            raise Exception(f"cloud-config.json not found at %s" % config_path)
 
-        f = open(static_path, "r")
+        f = open(config_path, "r")
 
-        static_contents = loads(f.read())
+        config_contents = loads(f.read())
 
-        for key, value in static_contents.items():
-            self.table["static" + "_" + key] = value
+        self.environment = config_contents["env"]
 
+        self.stacks_list = config_contents["stacks"]
+
+        if "ignore" in config_contents:
+            self.ignore = config_contents["ignore"]
+
+        for key, value in config_contents.items():
+            if key not in self.reserved:
+                self.insert_into_table(key, value)
+    
     def __init__(self, dir, profile):
         self.profile = profile
         self.config_dir = dir
 
+        self.read_config()
         self.read_stack_outputs()
-        self.read_static_config()
+
 
     def __getitem__(self, config):
         if config in self.table:
