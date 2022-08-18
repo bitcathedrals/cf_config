@@ -1,5 +1,4 @@
 import sys
-import importlib
 import os
 
 from pprint import pprint
@@ -11,8 +10,6 @@ def update_search_path():
         sys.path.append(cur + "/" + x)
 
 update_search_path()
-
-pprint(sys.path)
 
 import cf_config.cloud_formation
 import deploy
