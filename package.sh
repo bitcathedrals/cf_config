@@ -103,8 +103,8 @@ case $1 in
         pyenv rehash
     ;;
     "push")
-        test -d ~/coding/python-packages/simple/cf_config || mkdir -p ~/coding/python-packages/simple/cf_config
-        cp dist/* ~/coding/python-packages/simple/cf_config/
+        test -d ~/coding/python-packages/simple/cfconfig || mkdir -p ~/coding/python-packages/simple/cfconfig
+        cp dist/* ~/coding/python-packages/simple/cfconfig/
     ;;
     "list")
         pyenv exec python -m pipenv graph

@@ -11,7 +11,7 @@ def update_search_path():
 
 update_search_path()
 
-import cf_config.cloud_formation
+import cfconfig.cloud_formation
 import deploy
 
 #
@@ -58,7 +58,7 @@ print(test_stack.json)
 
 print(test_stack.find(name='test-stack'))
 
-from cf_config.cloud_config import CloudConfig
+from cfconfig.cloud_config import CloudConfig
 
 test_dir="/Users/michaelmattie/coding/cf-config/tests"
 
