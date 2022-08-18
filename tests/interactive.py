@@ -10,13 +10,7 @@ def update_search_path():
     for x in ('src', 'CloudFormation'):
         sys.path.append(cur + "/" + x)
 
-def reload_modules():
-    importlib.reload(cf_config.cloud_formation)
-    importlib.reload(deploy)
-
-
 update_search_path()
-
 
 pprint(sys.path)
 
