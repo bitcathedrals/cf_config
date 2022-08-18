@@ -13,7 +13,7 @@ def add_cf_config_search_path():
 
 add_cf_config_search_path()
 
-from cf_config.cloud_config import CloudConfig
+from cfconfig.cloud_config import CloudConfig
 
 cf_config = CloudConfig(tests_path(), "root")
 

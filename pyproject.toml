@@ -1,4 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "cf_config"
-version = "0.4.0"
+
+name = "cfconfig"
+version = "0.6.0"
+
+license = { file = "LICENSE" }
+
+readme = "README.md"
+
+description = "CloudFormation configuration and deployment."
+authors = [ { name = "Michael Mattie" , email = "codermattie@runbox.com" } ]
+
+[project.urls]
+homepage = "https://github.com/coderofmattie/cf_config"
+repository = "https://github.com/coderofmattie/cf_config.git"
+
+
+
 

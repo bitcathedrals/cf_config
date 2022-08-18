@@ -1,5 +1,4 @@
 .vscode/
-vscode-workspace/
 tests/config.py
 
 # Byte-compiled / optimized / DLL files
