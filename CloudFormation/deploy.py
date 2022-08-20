@@ -1,7 +1,7 @@
 # Copyright Michael Mattie (2022) - michael.mattie.employers@gmail.com
 
-from cf_config.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command, BUILD_PROFILE
-from cf_config.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, ACCESS_TYPE, PARAMETER_ACCCOUNT
+from cfconfig.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command, BUILD_PROFILE
+from cfconfig.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, ACCESS_TYPE, PARAMETER_ACCCOUNT
 
 import sys
 import argparse

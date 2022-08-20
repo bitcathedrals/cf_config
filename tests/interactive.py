@@ -1,5 +1,4 @@
 import sys
-import importlib
 import os
 
 from pprint import pprint
@@ -10,17 +9,9 @@ def update_search_path():
     for x in ('src', 'CloudFormation'):
         sys.path.append(cur + "/" + x)
 
-def reload_modules():
-    importlib.reload(cf_config.cloud_formation)
-    importlib.reload(deploy)
-
-
 update_search_path()
 
-
-pprint(sys.path)
-
-import cf_config.cloud_formation
+import cfconfig.cloud_formation
 import deploy
 
 #
@@ -67,7 +58,7 @@ print(test_stack.json)
 
 print(test_stack.find(name='test-stack'))
 
-from cf_config.cloud_config import CloudConfig
+from cfconfig.cloud_config import CloudConfig
 
 test_dir="/Users/michaelmattie/coding/cf-config/tests"
 

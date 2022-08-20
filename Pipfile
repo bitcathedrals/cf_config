@@ -3,11 +3,6 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-[[source]]
-url = "http://bitcathedrals.com/python"
-verify_ssl = false
-name = "local"
-
 [packages]
 
 boto3 = "1.24.22"

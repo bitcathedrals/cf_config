@@ -7,6 +7,8 @@ PUBLISH_USER=packages
 
 VIRTUAL_PREFIX="config"
 
+REGION='us-west-2'
+
 case $1 in
 
 #
@@ -71,7 +73,19 @@ case $1 in
         shift
         pyenv exec python -m awscli $@
     ;;
+    "cf")
+        shift
 
+        export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" \
+                    $(aws sts assume-role \
+                    --role-arn arn:aws:iam::324189914596:role/devCFconfigBuildRole \
+                    --role-session-name DevCloudFormationSession \
+                    --profile dev \
+                    --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+                    --output text))
+
+        pyenv exec python -m awscli --region $REGION $@
+    ;;
     "validate")
         pyenv exec python -m awscli cloudformation validate-template --template-body file://$2 --profile $AWS_PROFILE
    ;;
@@ -103,7 +117,8 @@ case $1 in
         pyenv rehash
     ;;
     "push")
-        cp dist/* ~/coding/python-packages/local/
+        test -d ~/coding/python-packages/simple/cfconfig || mkdir -p ~/coding/python-packages/simple/cfconfig
+        cp dist/* ~/coding/python-packages/simple/cfconfig/
     ;;
     "list")
         pyenv exec python -m pipenv graph
