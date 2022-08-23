@@ -7,9 +7,9 @@ from json import dumps, loads
 
 from functools import cached_property
 
-from .cloud_formation import CloudFormationExecute
+from .cloud_formation import CloudFormationExecute, ENVIRONMENTS
 
-from pprint import pprint
+from re import sub
 
 class CloudConfig:
     environment = None
@@ -24,9 +24,9 @@ class CloudConfig:
 
     reserved = [ "env", "stacks", "ignore" ]
 
-    def insert_into_table(self, key, value, source="static"):
+    def insert_into_table(self, key, value, source='static'):
         print(f"[%s]: adding key -> %s" % (source, key))
-        self.table[source + "_" + key] = value
+        self.table[key] = value
 
     def read_stack_outputs(self):
         for stack_name in self.stacks_list:
@@ -84,7 +84,13 @@ class CloudConfig:
         config_data = []
 
         for config, value in self.table.items():
-            constant_name = config.upper().replace('-','_')
+            cleaned = config.upper().replace('-','_')
+
+            for env in ENVIRONMENTS:
+                constant_name = sub('/^' + env + '/','', cleaned)
+ 
+                if len(constant_name) < len(cleaned):
+                    break
 
             if isinstance(value, str):
                 constant_value = "\"%s\"" % value
