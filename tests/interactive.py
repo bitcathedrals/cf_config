@@ -60,8 +60,11 @@ print(test_stack.find(name='test-stack'))
 
 from cfconfig.cloud_config import CloudConfig
 
-test_dir="/Users/michaelmattie/coding/cf-config/tests"
+intel_dir="/Users/michaelmattie/coding/cf_config/tests"
+m1_dir="/Users/mattie/coding/cf_config/tests"
 
-config = CloudConfig(test_dir,"root")
+config = CloudConfig(intel_dir,"root")
+config = CloudConfig(m1_dir,"root")
 
-config.write_module(test_dir,"test_module")
+config.write_module(intel_dir,"test_module")
+config.write_module(m1_dir,"test_module")
