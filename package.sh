@@ -8,12 +8,22 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
-VERSION=0.6.3
+VERSION=0.7.0
 
 AWS_PROFILE='dev'
 
 
-function include_src {
+function add_src {
+    site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
+
+    echo "include_src: setting dev.pth in $site/dev.pth"
+
+    test -d $site || mkdir -p $site
+    echo "$PWD/src/" >"$site/dev.pth"
+    echo "$PWD/scripts/" >>"$site/dev.pth"
+}
+
+function remove_src {
     site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
 
     echo "include_src: setting dev.pth in $site/dev.pth"
@@ -75,7 +85,7 @@ case $1 in
     ;;
     "paths")
         shift
-        include_src
+        add_src
         pyenv exec python -c "import sys; print(sys.path)"
     ;;
     "python")

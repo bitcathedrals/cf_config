@@ -18,6 +18,7 @@ authors = [ { name = "Michael Mattie" , email = "codermattie@runbox.com" } ]
 homepage = "https://github.com/coderofmattie/cf_config"
 repository = "https://github.com/coderofmattie/cf_config.git"
 
-
+[project.scripts]
+awsconfig = "scripts.makeconfig:exec"
 
 

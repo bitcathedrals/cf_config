@@ -2,7 +2,7 @@ import argparse
 
 from cfconfig.cloud_config import CloudConfig
 
-if __name__ == "__main__":
+def exec():
     parser = argparse.ArgumentParser("Generate configurations from static configuration and AWS CF stacks.")
 
     parser.add_argument("profile", help="aws credentials profile (required)")
@@ -21,3 +21,6 @@ if __name__ == "__main__":
         config.write_configuration(args.output)
     else:
         config.print_configuration()
+
+if __name__ == "__main__":
+    exec()
