@@ -4,16 +4,19 @@ import os
 
 from cfconfig.cloud_formation import cloud_command
 
-def import_stack(dir, module):
+def importer(dir, module):
     os.path.append(dir)
     globals()[module] = import_module(module)
 
     return globals()[module]
 
-def build_executor(dir, module, profile, environment):
-    cfconfig_module = import_module(dir, module)
+def deployer(dir, module, profile, environment, command):
+    if command in ['template-json', 'template-python', 'build']:
+        template = True
+    else:
+        template = False
 
-    return cfconfig_module.build(profile, environment)
+    return importer(dir, module).deploy(profile, environment, template=template)
 
 def exec():
     global AWS_PROFILE
@@ -38,15 +41,14 @@ def exec():
     """
 
     parser.add_argument("command", help=COMMAND)
+
     parser.add_argument("--limit", help="limit output to N entries", type=int, required=False, default=10)
    
     args = parser.parse_args()
 
-    cloud_command(build_executor(args.dir, args.module, args.profile, args.environment),
+    cloud_command(deployer(args.dir, args.module, args.profile, args.environment),
                                  args.command,
                                  args.limit)
 
 if __name__ == "__main__":
     exec()
-
-
