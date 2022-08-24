@@ -502,14 +502,13 @@ class CloudFormationExecute:
 
             sleep(1)
 
-def cloud_command(args, executor):
-    command = args.command
+def cloud_command(args, executor, command, limit=None):
 
     if command == "template-json":
         print(executor.template_object.json + "\n")
         return False
 
-    if command == "template-print":
+    if command == "template-python":
         executor.template_object.print()
         return False
 
@@ -530,35 +529,7 @@ def cloud_command(args, executor):
         return False
 
     if command == "events":
-        pprint(executor.events(count=args.count))
-        return False
-
-    if command == "write":
-        if not 'config_file' in args:
-            print("you must specify a file to merge config data with.")
-            return False
-
-        merge = args['config_file']
-
-        table = {}
-
-        if os.path.isfile(merge):
-            table = loads(open(merge, 'r').read())
-
-        table.update(executor.output)
-
-        file = open(merge, 'w')
-
-        file.write(
-            dumps(
-                table, 
-                indent=4, 
-                sort_keys=True)
-            + "\n"
-        )
-        
-        file.close()
-
+        pprint(executor.events(limit))
         return False
 
     print("unknown command: %s" % command)
