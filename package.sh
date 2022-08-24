@@ -8,6 +8,7 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
+VERSION=0.6.3
 
 case $1 in
 
@@ -117,26 +118,36 @@ case $1 in
         pyenv rehash
     ;;
     "push")
-        test -d ~/coding/python-packages/simple/cfconfig || mkdir -p ~/coding/python-packages/simple/cfconfig
-        cp dist/* ~/coding/python-packages/simple/cfconfig/
-    ;;
+
     "list")
         pyenv exec python -m pipenv graph
     ;;
 #
 # release environment
 #
-    "freeze")
-        pyenv exec python -m pipenv lock
-    ;;
-    "requirements")
-        pyenv exec python -m pipenv run python -m pip freeze
-    ;;
-    "release")
+    "release-m1")
         pyenv exec python -m pyenv -m pip -U pip
         pyenv exec python -m pyenv install -U pipenv
         pyenv exec python -m pipenv install --ignore-pipfile
         pyenv rehash
+
+        test -d releases || mkdir releases
+        pyenv exec python -m pipenv lock
+        mv Pipfile.lock releases/Pipfile.lock-$VERSION
+
+        git push --all
+        git push --tags
+
+        pyenv exec python -m build
+
+        DIST_PATH="/Users/michaelmattie/coding/python-packages/"
+        PKG_PATH="$DIST_PATH/simple/cfconfig"
+        BEAST="michaelmattie@beast.local"
+
+        ssh $BEAST "test -d $PKG_PATH || mkdir $PKG_PATH"
+        scp dist/* "$BEAST:$PKG_PATH/"
+        ssh $BEAST "cd $DISTPATH && ./upload-new-packages.sh"
+        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && ./update-packages.sh"
     ;;
     *)
         echo "unknown command."
