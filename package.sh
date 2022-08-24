@@ -8,13 +8,36 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
+VERSION=0.7.0
+
+AWS_PROFILE='dev'
+
+
+function add_src {
+    site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
+
+    echo "include_src: setting dev.pth in $site/dev.pth"
+
+    test -d $site || mkdir -p $site
+    echo "$PWD/src/" >"$site/dev.pth"
+    echo "$PWD/scripts/" >>"$site/dev.pth"
+}
+
+function remove_src {
+    site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
+
+    echo "include_src: setting dev.pth in $site/dev.pth"
+
+    test -d $site || mkdir -p $site
+    echo "$PWD/src/" >"$site/dev.pth"
+    echo "$PWD/scripts/" >>"$site/dev.pth"
+}
 
 case $1 in
 
 #
 # tooling
 #
-
     "install-tools")
         brew update
 
@@ -49,7 +72,6 @@ case $1 in
     "virtual-list")
         pyenv virtualenvs
     ;;
-
 #
 # all environments
 #
@@ -59,15 +81,21 @@ case $1 in
         pipenv graph
     ;;
     "test")
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m pytest tests
+        pyenv exec python -m pytest tests
+    ;;
+    "paths")
+        shift
+        add_src
+        pyenv exec python -c "import sys; print(sys.path)"
     ;;
     "python")
         shift
-        PYTHONPATH="$PYTHONPATH:src:CloudFormation:" pyenv exec python $@
+        pyenv exec python -c 'import sys;print(sys.path)'
+        pyenv exec python $@
     ;;
     "run")
         shift
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec $@ 
+        pyenv exec $@ 
     ;;
     "aws")
         shift
@@ -90,17 +118,20 @@ case $1 in
         pyenv exec python -m awscli cloudformation validate-template --template-body file://$2 --profile $AWS_PROFILE
    ;;
 
-    "cli-delete")
+    "delete")
         echo "attempting to delete stack: $2"
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation delete-stack --stack-name $2
+        pyenv exec python -m awscli cloudformation delete-stack --stack-name $2  --profile $AWS_PROFILE
     ;;
-    "cli-describe")
+    "describe")
         echo "attempting to describe stack: $2"
-        PYTHONPATH="$PYTHONPATH:src" pyenv exec python -m awscli cloudformation describe-stacks --stack-name $2
+        pyenv exec python -m awscli cloudformation describe-stacks --stack-name $2 --profile $AWS_PROFILE
     ;;
 
     "build")
         pyenv exec python -m build
+
+        find . -name '*.egg-info' -type d -print | xargs rm -r 
+        find . -name '__pycache__' -type d -print | xargs rm -r  
     ;;
 
 #
@@ -116,27 +147,35 @@ case $1 in
         pyenv exec python -m pipenv install --dev --skip-lock
         pyenv rehash
     ;;
-    "push")
-        test -d ~/coding/python-packages/simple/cfconfig || mkdir -p ~/coding/python-packages/simple/cfconfig
-        cp dist/* ~/coding/python-packages/simple/cfconfig/
-    ;;
     "list")
         pyenv exec python -m pipenv graph
     ;;
 #
 # release environment
 #
-    "freeze")
-        pyenv exec python -m pipenv lock
-    ;;
-    "requirements")
-        pyenv exec python -m pipenv run python -m pip freeze
-    ;;
-    "release")
+    "release-m1")
         pyenv exec python -m pyenv -m pip -U pip
         pyenv exec python -m pyenv install -U pipenv
         pyenv exec python -m pipenv install --ignore-pipfile
         pyenv rehash
+
+        test -d releases || mkdir releases
+        pyenv exec python -m pipenv lock
+        mv Pipfile.lock releases/Pipfile.lock-$VERSION
+
+        git push --all
+        git push --tags
+
+        pyenv exec python -m build
+
+        DIST_PATH="/Users/michaelmattie/coding/python-packages/"
+        PKG_PATH="$DIST_PATH/simple/cfconfig"
+        BEAST="michaelmattie@beast.local"
+
+        ssh $BEAST "test -d $PKG_PATH || mkdir $PKG_PATH"
+        scp dist/* "$BEAST:$PKG_PATH/"
+        ssh $BEAST "cd $DISTPATH && ./upload-new-packages.sh"
+        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && ./update-packages.sh"
     ;;
     *)
         echo "unknown command."

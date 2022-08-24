@@ -3,14 +3,6 @@ import os
 
 from pprint import pprint
 
-def update_search_path():
-    cur = os.getcwd()
-    
-    for x in ('src', 'CloudFormation'):
-        sys.path.append(cur + "/" + x)
-
-update_search_path()
-
 import cfconfig.cloud_formation
 import deploy
 

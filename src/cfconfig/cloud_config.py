@@ -2,106 +2,106 @@
 
 from os import path
 from datetime import datetime
-
-from json import dumps, loads
-
-from functools import cached_property
-
-from .cloud_formation import CloudFormationExecute, ENVIRONMENTS
-
 from re import sub
+from json import loads
+
+from .cloud_formation import CloudFormationExecute
 
 class CloudConfig:
-    environment = None
-    profile = None
-    config_dir = None
+    reserved = [ "stacks", "ignore" ]
 
     ignore = []
 
-    stacks_list = {}
-        
     table = {}
 
-    reserved = [ "env", "stacks", "ignore" ]
+    configuration = []
 
     def insert_into_table(self, key, value, source='static'):
         print(f"[%s]: adding key -> %s" % (source, key))
         self.table[key] = value
 
-    def read_stack_outputs(self):
-        for stack_name in self.stacks_list:
+    def read_stacks(self, stacks_list, environment, profile):
+
+        for stack_name in stacks_list:
             stack = CloudFormationExecute(stack_name,
                                           None,
-                                          self.environment,
-                                          profile=self.profile)
+                                          environment,
+                                          profile=profile)
 
             for key,value in stack.output.items():
                 if key not in self.ignore:
                     self.insert_into_table(key, value, source=stack_name)
                 else:
-                    print(f"[%s]: ignoring key -> %s" % (stack_name,key))
+                    print(f"[%s]: ignoring key -> %s" % (stack_name, key))
 
-    def read_config(self):
-        config_path = self.config_dir + "/cloud-config.json"
+    def read_config(self, config, environment):
+        if not path.isfile(config):
+            raise Exception(f"CFconfig error: %s config not found" % self.config_file)
 
-        if not path.isfile(config_path):
-            raise Exception(f"cloud-config.json not found at %s" % config_path)
+        f = open(config, "r")
 
-        f = open(config_path, "r")
+        config = loads(f.read())
 
-        config_contents = loads(f.read())
+        if environment not in config:
+            raise Exception(f"CFconfig error: %s environment not found in -> %s" % (environment, 
+                                                                                    config))
 
-        self.environment = config_contents["env"]
+        aws_env = config[environment]
 
-        self.stacks_list = config_contents["stacks"]
-
-        if "ignore" in config_contents:
-            self.ignore = config_contents["ignore"]
-
-        for key, value in config_contents.items():
+        if "stacks" in aws_env:
+            stacks_list = aws_env["stacks"]
+        else:
+            raise Exception(f"CFconfig WARNING: %s environment does not have \"stacks\" list -> %s" % 
+                                                                                    (environment, 
+                                                                                     config))
+        if "ignore" in aws_env:
+            self.ignore = aws_env["ignore"]
+        
+        for key, value in aws_env.items():
             if key not in self.reserved:
                 self.insert_into_table(key, value)
-    
-    def __init__(self, dir, profile):
-        self.profile = profile
-        self.config_dir = dir
 
-        self.read_config()
-        self.read_stack_outputs()
+        return stacks_list
 
-
-    def __getitem__(self, config):
-        if config in self.table:
-            return self.table[config]
-        
-        raise Exception("Unknown config: %s" % config)
-
-    def write_module(self, dir, module):
-        f = open(dir + "/" + module + ".py", "w")
- 
-        f.write(f'# Config Generated @ %s\n\n' % datetime.now().isoformat())
-
-        config_data = []
-
+    def generate_configuration(self):
         for config, value in self.table.items():
             cleaned = config.upper().replace('-','_')
 
-            for env in ENVIRONMENTS:
-                constant_name = sub('/^' + env + '/','', cleaned)
+            constant_name = sub('/^' + self.environment + '/','', cleaned)
  
-                if len(constant_name) < len(cleaned):
-                    break
-
             if isinstance(value, str):
                 constant_value = "\"%s\"" % value
             else:
                 constant_value = str(value)
             
-            config_data.append("%s=%s" % (constant_name, constant_value))
+            self.configuration.append("%s=%s" % (constant_name, constant_value))
 
-        config_data.sort()
+        self.configuration.sort()
 
-        f.write("\n".join(config_data))
+    def __init__(self, profile, config, environment):
+        self.environment = environment
+
+        stacks = self.read_config(config, environment)
+        self.read_stacks(stacks, environment, profile)
+
+        self.generate_configuration()
+        
+    def __getitem__(self, config):
+        if config in self.table:
+            return self.table[config]
+        
+        raise Exception("CFconfig unknown config: %s" % config)
+
+    def print_configuration(self):
+        print("\n".join(self.configuration))
+        print("\n") 
+
+    def write_configuration(self):
+        f = open(self.output, "w")
+ 
+        f.write(f'# Config Generated @ %s\n\n' % datetime.now().isoformat())
+
+        f.write("\n".join(self.configuration))
         f.write("\n")
 
         f.close()
