@@ -342,8 +342,11 @@ class CloudFormationExecute:
 
         return data
 
-    def events(self, *attributes, filter=None, count=DEFAULT_EVENT_LIMIT):
-        events = self.existing.events.limit(count=count)
+    def events(self, *attributes, filter=None, limit=None):
+        if limit:
+            events = self.existing.events.limit(limit)
+        else:
+            events = self.existing.events.all()
 
         if not events:
             return []
@@ -433,7 +436,7 @@ class CloudFormationExecute:
             self,  
             name=None, 
             status_filter=BUILT_COMPLETE_STATUS + BUILT_ROLLBACK_STATUS + BUILT_FAILED_STATUS, 
-            count=DEFAULT_STACK_LIMIT
+            limit=None
         ):
         
         if not name:
@@ -441,7 +444,12 @@ class CloudFormationExecute:
 
         found = []
 
-        for stack in self.resource.stacks.limit(count=count):
+        if limit:
+            stack_list = self.resources = self.resource.stacks.limit(limit)
+        else:
+            stack_list = self.resources = self.resource.stacks.all()
+
+        for stack in stack_list:
             if stack.stack_name == name and stack.stack_status in status_filter:
                 found.append(stack)
 
@@ -502,7 +510,7 @@ class CloudFormationExecute:
 
             sleep(1)
 
-def cloud_command(args, executor, command, limit=None):
+def cloud_command(executor, command, limit=None):
 
     if command == "template-json":
         print(executor.template_object.json + "\n")
@@ -524,7 +532,7 @@ def cloud_command(args, executor, command, limit=None):
         print(executor.json)
         return False
 
-    if command  == "output-print":
+    if command  == "output-python":
         executor.print()
         return False
 
