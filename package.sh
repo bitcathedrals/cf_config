@@ -43,12 +43,14 @@ case $1 in
 
         brew install pyenv
         brew install pyenv-virtualenv
+        brew install git-flow
     ;;
     "update-tools")
         brew update
 
         brew upgrade pyenv
         brew upgrade pyenv-virtualenv
+        brew upgrade git-flow
     ;;
 
 #
@@ -161,7 +163,9 @@ case $1 in
 
         test -d releases || mkdir releases
         pyenv exec python -m pipenv lock
+
         mv Pipfile.lock releases/Pipfile.lock-$VERSION
+        cp Pipfile releases/Pipfile-$VERSION
 
         git push --all
         git push --tags
@@ -174,8 +178,8 @@ case $1 in
 
         ssh $BEAST "test -d $PKG_PATH || mkdir $PKG_PATH"
         scp dist/* "$BEAST:$PKG_PATH/"
-        ssh $BEAST "cd $DISTPATH && ./upload-new-packages.sh"
-        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && ./update-packages.sh"
+        ssh $BEAST "cd $DISTPATH && /bin/bash upload-new-packages.sh"
+        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && /bin/bash update-packages.sh"
     ;;
     *)
         echo "unknown command."
