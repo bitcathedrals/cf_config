@@ -1,6 +1,7 @@
 import argparse
 from importlib import import_module
 import os
+import textwrap
 
 from cfconfig.cloud_formation import cloud_command
 
@@ -19,14 +20,9 @@ def deployer(dir, module, profile, environment, command):
     return importer(dir, module).deploy(profile, environment, template=template)
 
 def exec():
-    parser = argparse.ArgumentParser("Generate deploy AWS CloudFormation Stacks constructed with CFconfig.")
-
-    parser.add_argument("profile", help="aws credentials profile (required)")
-    parser.add_argument("environment", help="AWS environment (required)")
-    parser.add_argument("dir", help="directory containing the CFconfig module")
-    parser.add_argument("module", help="module containing a build(profile,environment) hook")
-
-    COMMAND = """
+    DESCRIPTION = """
+        Generate deploy AWS CloudFormation Stacks constructed with CFconfig.
+        
         [deploy commands]:
 
         -> template-json: print the json of the template
@@ -38,7 +34,18 @@ def exec():
         -> events: print the event history of the stack up to --limit=N entries
     """
 
-    parser.add_argument("command", help=COMMAND)
+    parser = argparse.ArgumentParser(
+        prog='makedeploy',
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=textwrap.dedent(DESCRIPTION),
+    )
+
+    parser.add_argument("profile", help="aws credentials profile (required)")
+    parser.add_argument("environment", help="AWS environment (required)")
+    parser.add_argument("dir", help="directory containing the CFconfig module")
+    parser.add_argument("module", help="module containing a build(profile,environment) hook")
+
+    parser.add_argument("command", help="execute [command]")
 
     parser.add_argument("--limit", help="limit output to N entries", type=int, required=False, default=10)
    
