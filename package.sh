@@ -190,9 +190,7 @@ case $1 in
         PKG_PATH="$DIST_PATH/simple/cfconfig"
 
         test -d $PKG_PATH || mkdir $PKG_PATH
-        scp dist/* $PKG_PATH/
-        (cd $DISTPATH && /bin/bash upload-new-packages.sh)
-        (cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && /bin/bash update-packages.sh)
+        cp dist/* $PKG_PATH/
     ;;
     *)
         echo "unknown command."
