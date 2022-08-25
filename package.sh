@@ -171,6 +171,9 @@ case $1 in
     "deploy-m1")
         pyenv exec python -m build
 
+        find . -name '*.egg-info' -type d -print | xargs rm -r 
+        find . -name '__pycache__' -type d -print | xargs rm -r 
+
         DIST_PATH="/Users/michaelmattie/coding/python-packages/"
         PKG_PATH="$DIST_PATH/simple/cfconfig"
         BEAST="michaelmattie@beast.local"
@@ -179,6 +182,20 @@ case $1 in
         scp dist/* "$BEAST:$PKG_PATH/"
         ssh $BEAST "cd $DISTPATH && /bin/bash upload-new-packages.sh"
         ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && /bin/bash update-packages.sh"
+    ;;
+    "deploy-intel")
+        pyenv exec python -m build
+
+        find . -name '*.egg-info' -type d -print | xargs rm -r 
+        find . -name '__pycache__' -type d -print | xargs rm -r 
+
+        DIST_PATH="/Users/michaelmattie/coding/python-packages/"
+        PKG_PATH="$DIST_PATH/simple/cfconfig"
+
+        test -d $PKG_PATH || mkdir $PKG_PATH
+        scp dist/* $PKG_PATH/
+        (cd $DISTPATH && /bin/bash upload-new-packages.sh)
+        (cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && /bin/bash update-packages.sh)
     ;;
     *)
         echo "unknown command."
