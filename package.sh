@@ -8,7 +8,7 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
-VERSION=0.7.0
+VERSION=0.7.1
 
 AWS_PROFILE='dev'
 
@@ -20,17 +20,15 @@ function add_src {
 
     test -d $site || mkdir -p $site
     echo "$PWD/src/" >"$site/dev.pth"
-    echo "$PWD/scripts/" >>"$site/dev.pth"
+    echo "$PWD/src/scripts/" >>"$site/dev.pth"
 }
 
 function remove_src {
     site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
 
-    echo "include_src: setting dev.pth in $site/dev.pth"
+    echo "remove_src: removing dev.pth from $site/dev.pth"
 
-    test -d $site || mkdir -p $site
-    echo "$PWD/src/" >"$site/dev.pth"
-    echo "$PWD/scripts/" >>"$site/dev.pth"
+    test -f "$site/dev.pth" && rm "$site/dev.pth"
 }
 
 case $1 in
@@ -43,12 +41,14 @@ case $1 in
 
         brew install pyenv
         brew install pyenv-virtualenv
+        brew install git-flow
     ;;
     "update-tools")
         brew update
 
         brew upgrade pyenv
         brew upgrade pyenv-virtualenv
+        brew upgrade git-flow
     ;;
 
 #
@@ -90,7 +90,6 @@ case $1 in
     ;;
     "python")
         shift
-        pyenv exec python -c 'import sys;print(sys.path)'
         pyenv exec python $@
     ;;
     "run")
@@ -153,7 +152,7 @@ case $1 in
 #
 # release environment
 #
-    "release-m1")
+    "release-start")
         pyenv exec python -m pyenv -m pip -U pip
         pyenv exec python -m pyenv install -U pipenv
         pyenv exec python -m pipenv install --ignore-pipfile
@@ -161,11 +160,15 @@ case $1 in
 
         test -d releases || mkdir releases
         pyenv exec python -m pipenv lock
-        mv Pipfile.lock releases/Pipfile.lock-$VERSION
 
+        mv Pipfile.lock releases/Pipfile.lock-$VERSION
+        cp Pipfile releases/Pipfile-$VERSION
+    ;;
+    "release-finish")
         git push --all
         git push --tags
-
+    ;;
+    "deploy-m1")
         pyenv exec python -m build
 
         DIST_PATH="/Users/michaelmattie/coding/python-packages/"
@@ -174,8 +177,8 @@ case $1 in
 
         ssh $BEAST "test -d $PKG_PATH || mkdir $PKG_PATH"
         scp dist/* "$BEAST:$PKG_PATH/"
-        ssh $BEAST "cd $DISTPATH && ./upload-new-packages.sh"
-        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && ./update-packages.sh"
+        ssh $BEAST "cd $DISTPATH && /bin/bash upload-new-packages.sh"
+        ssh $BEAST "cd $DISTPATH && mv simple/cfconfig/* remote/cfconfig/ && /bin/bash update-packages.sh"
     ;;
     *)
         echo "unknown command."

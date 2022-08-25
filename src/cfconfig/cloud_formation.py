@@ -6,14 +6,12 @@ import logging
 import boto3
 from botocore.config import Config
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from functools import cached_property
 
 from pprint import pprint
 from time import sleep
-from json import loads, dumps
-
-ENVIRONMENTS = ['dev', 'test', 'pre', 'prod']
+from json import dumps
 
 DEFAULT_REGION = 'us-west-2'
 DEBUG_STREAM = 'boto3.resources'
@@ -40,8 +38,7 @@ BUILT_IN_PROGRESS_STATUS = ['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBAC
 
 CF_RESOURCE = 'cloudformation'
 
-DEFAULT_EVENT_LIMIT = 100
-DEFAULT_STACK_LIMIT = 1000
+AWScontext = namedtuple('AWScontext', ['role', 'profile', 'environment'])
 
 def build_tags(given_tags):
     tags = []
@@ -62,11 +59,8 @@ class CloudFormationTemplate(ABC):
     env = None
     tags = []
 
-    def __init__(self, environment, **tags):
-        if environment not in ENVIRONMENTS:
-            raise ValueError("Environment '%s' is not supported" % environment)
-
-        self.env = environment
+    def __init__(self, context, **tags):
+        self.env = context.environment
         self.tags = build_tags(tags)
 
     def build_output(self, key, value):
@@ -236,37 +230,28 @@ def cf_default_config(region, retries=6, mode='standard'):
 class CloudFormationExecute:
     environment = None
 
+    context = None
     stack_name = None
-    config = None 
 
-    profile = None
-    role = None
+    config = None 
 
     tags = []
 
     template = None
 
-    environment = None
-
     def __init__(
-        self, 
+        self,
+        context,
         stack_name, 
         template,
-        environment,
         region=DEFAULT_REGION,
-        role=None, 
-        profile=BUILD_PROFILE, 
         config=None, 
         debug=False,
         **kwargs
     ):
-        if environment not in ENVIRONMENTS:
-            raise ValueError("Environment '%s' is not supported" % environment)
-
+        self.context = context
         self.stack_name = stack_name
-
         self.template = template
-        self.environment = environment
 
         if config:
             self.config = config
@@ -274,11 +259,8 @@ class CloudFormationExecute:
             self.config = cf_default_config(region)
 
         session_default = {
-            'profile_name': profile
+            'profile_name': context.profile
         }
-
-        self.profile = profile
-        self.role = role
             
         boto3.setup_default_session(**session_default)
 
@@ -286,16 +268,16 @@ class CloudFormationExecute:
             boto3.set_stream_logger(DEBUG_STREAM, logging.DEBUG)
 
         kwargs['region'] = region
-        kwargs['environment'] = environment
+        kwargs['environment'] = context.environment
 
-        tags = build_tags(kwargs)
+        self.tags = build_tags(kwargs)
 
     @property
     def role_credentials(self):
         sts_client = boto3.client('sts')
 
         assume = sts_client.assume_role(
-            RoleArn=self.role,
+            RoleArn=self.context.role,
             RoleSessionName="CFBuildSession"
         )
 
@@ -320,7 +302,7 @@ class CloudFormationExecute:
 
     @cached_property
     def resource(self):
-        if self.profile == 'root':
+        if self.context.profile == 'root':
             return self.root_resource                                      
 
         return self.role_resource
@@ -342,8 +324,11 @@ class CloudFormationExecute:
 
         return data
 
-    def events(self, *attributes, filter=None, count=DEFAULT_EVENT_LIMIT):
-        events = self.existing.events.limit(count=count)
+    def events(self, *attributes, filter=None, limit=None):
+        if limit:
+            events = self.existing.events.limit(limit)
+        else:
+            events = self.existing.events.all()
 
         if not events:
             return []
@@ -433,7 +418,7 @@ class CloudFormationExecute:
             self,  
             name=None, 
             status_filter=BUILT_COMPLETE_STATUS + BUILT_ROLLBACK_STATUS + BUILT_FAILED_STATUS, 
-            count=DEFAULT_STACK_LIMIT
+            limit=None
         ):
         
         if not name:
@@ -441,7 +426,12 @@ class CloudFormationExecute:
 
         found = []
 
-        for stack in self.resource.stacks.limit(count=count):
+        if limit:
+            stack_list = self.resources = self.resource.stacks.limit(limit)
+        else:
+            stack_list = self.resources = self.resource.stacks.all()
+
+        for stack in stack_list:
             if stack.stack_name == name and stack.stack_status in status_filter:
                 found.append(stack)
 
@@ -502,14 +492,13 @@ class CloudFormationExecute:
 
             sleep(1)
 
-def cloud_command(args, executor):
-    command = args.command
+def cloud_command(executor, command, limit=None):
 
     if command == "template-json":
         print(executor.template_object.json + "\n")
         return False
 
-    if command == "template-print":
+    if command == "template-python":
         executor.template_object.print()
         return False
 
@@ -525,51 +514,13 @@ def cloud_command(args, executor):
         print(executor.json)
         return False
 
-    if command  == "output-print":
+    if command  == "output-python":
         executor.print()
         return False
 
     if command == "events":
-        pprint(executor.events(count=args.count))
-        return False
-
-    if command == "write":
-        if not 'config_file' in args:
-            print("you must specify a file to merge config data with.")
-            return False
-
-        merge = args['config_file']
-
-        table = {}
-
-        if os.path.isfile(merge):
-            table = loads(open(merge, 'r').read())
-
-        table.update(executor.output)
-
-        file = open(merge, 'w')
-
-        file.write(
-            dumps(
-                table, 
-                indent=4, 
-                sort_keys=True)
-            + "\n"
-        )
-        
-        file.close()
-
+        pprint(executor.events(limit))
         return False
 
     print("unknown command: %s" % command)
     return False
-
-
-
-
-
-
-
-
-
-
