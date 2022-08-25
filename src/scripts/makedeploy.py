@@ -19,8 +19,6 @@ def deployer(dir, module, profile, environment, command):
     return importer(dir, module).deploy(profile, environment, template=template)
 
 def exec():
-    global AWS_PROFILE
-
     parser = argparse.ArgumentParser("Generate deploy AWS CloudFormation Stacks constructed with CFconfig.")
 
     parser.add_argument("profile", help="aws credentials profile (required)")
