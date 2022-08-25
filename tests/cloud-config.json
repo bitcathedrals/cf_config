@@ -3,6 +3,6 @@
         "stacks": ["test-stack"],
         "ignore": ["BuildUserAccessSecret", "BuildUserAccessId"],
 
-        "AppName": "tests"
+        "AppName": "test-stack"
     }
 }
