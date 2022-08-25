@@ -8,7 +8,7 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
-VERSION=0.7.0
+VERSION=0.7.1
 
 AWS_PROFILE='dev'
 
@@ -166,7 +166,8 @@ case $1 in
 
         git push --all
         git push --tags
-
+    ;;
+    "deploy-m1")
         pyenv exec python -m build
 
         DIST_PATH="/Users/michaelmattie/coding/python-packages/"
