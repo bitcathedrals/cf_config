@@ -58,7 +58,7 @@ class CloudConfig:
                                                                                      config))
 
         self.stacks = stacks_list
-        
+
         if "ignore" in aws_env:
             self.ignore = aws_env["ignore"]
         
@@ -83,11 +83,13 @@ class CloudConfig:
 
         self.configuration.sort()
 
-    def __init__(self, profile, config, environment):
+    def __init__(self, profile, config, environment, config_only=False):
         self.environment = environment
 
         stacks = self.read_config(config, environment)
-        self.read_stacks(stacks, environment, profile)
+
+        if not config_only:
+            self.read_stacks(stacks, environment, profile)
 
         self.generate_configuration()
         
