@@ -16,6 +16,8 @@ class CloudConfig:
 
     configuration = []
 
+    stacks = []
+
     def insert_into_table(self, key, value, source='static'):
         print(f"[%s]: adding key -> %s" % (source, key))
         self.table[key] = value
@@ -54,6 +56,9 @@ class CloudConfig:
             raise Exception(f"CFconfig WARNING: %s environment does not have \"stacks\" list -> %s" % 
                                                                                     (environment, 
                                                                                      config))
+
+        self.stacks = stacks_list
+        
         if "ignore" in aws_env:
             self.ignore = aws_env["ignore"]
         
