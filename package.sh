@@ -8,7 +8,7 @@ PUBLISH_USER=packages
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
-VERSION=0.7.0
+VERSION=0.7.1
 
 AWS_PROFILE='dev'
 
@@ -152,7 +152,7 @@ case $1 in
 #
 # release environment
 #
-    "release-m1")
+    "release-start")
         pyenv exec python -m pyenv -m pip -U pip
         pyenv exec python -m pyenv install -U pipenv
         pyenv exec python -m pipenv install --ignore-pipfile
@@ -163,10 +163,12 @@ case $1 in
 
         mv Pipfile.lock releases/Pipfile.lock-$VERSION
         cp Pipfile releases/Pipfile-$VERSION
-
+    ;;
+    "release-finish")
         git push --all
         git push --tags
-
+    ;;
+    "deploy-m1")
         pyenv exec python -m build
 
         DIST_PATH="/Users/michaelmattie/coding/python-packages/"
