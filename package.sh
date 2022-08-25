@@ -2,9 +2,6 @@
 
 PACKAGE_PYTHON_VERSION="3.10:latest"
 
-PUBLISH_SERVER=localhost
-PUBLISH_USER=packages
-
 VIRTUAL_PREFIX="config"
 
 REGION='us-west-2'
