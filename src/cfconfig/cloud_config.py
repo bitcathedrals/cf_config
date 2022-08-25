@@ -10,23 +10,26 @@ from .cloud_formation import CloudFormationExecute
 class CloudConfig:
     reserved = [ "stacks", "ignore" ]
 
+    context = None
+
     ignore = []
 
     table = {}
 
     configuration = []
 
+    stacks = []
+
     def insert_into_table(self, key, value, source='static'):
         print(f"[%s]: adding key -> %s" % (source, key))
         self.table[key] = value
 
-    def read_stacks(self, stacks_list, environment, profile):
+    def read_stacks(self, stacks_list):
 
         for stack_name in stacks_list:
-            stack = CloudFormationExecute(stack_name,
-                                          None,
-                                          environment,
-                                          profile=profile)
+            stack = CloudFormationExecute(self.context,
+                                          stack_name,
+                                          None)
 
             for key,value in stack.output.items():
                 if key not in self.ignore:
@@ -34,7 +37,7 @@ class CloudConfig:
                 else:
                     print(f"[%s]: ignoring key -> %s" % (stack_name, key))
 
-    def read_config(self, config, environment):
+    def read_config(self, config):
         if not path.isfile(config):
             raise Exception(f"CFconfig error: %s config not found" % self.config_file)
 
@@ -42,18 +45,21 @@ class CloudConfig:
 
         config = loads(f.read())
 
-        if environment not in config:
-            raise Exception(f"CFconfig error: %s environment not found in -> %s" % (environment, 
+        if self.context.environment not in config:
+            raise Exception(f"CFconfig error: %s environment not found in -> %s" % (self.context.environment, 
                                                                                     config))
 
-        aws_env = config[environment]
+        aws_env = config[self.context.environment]
 
         if "stacks" in aws_env:
             stacks_list = aws_env["stacks"]
         else:
             raise Exception(f"CFconfig WARNING: %s environment does not have \"stacks\" list -> %s" % 
-                                                                                    (environment, 
+                                                                                    (self.context.environment, 
                                                                                      config))
+
+        self.stacks = stacks_list
+
         if "ignore" in aws_env:
             self.ignore = aws_env["ignore"]
         
@@ -67,7 +73,7 @@ class CloudConfig:
         for config, value in self.table.items():
             cleaned = config.upper().replace('-','_')
 
-            constant_name = sub('/^' + self.environment + '/','', cleaned)
+            constant_name = sub('/^' + self.context.environment + '/','', cleaned)
  
             if isinstance(value, str):
                 constant_value = "\"%s\"" % value
@@ -78,11 +84,13 @@ class CloudConfig:
 
         self.configuration.sort()
 
-    def __init__(self, profile, config, environment):
-        self.environment = environment
+    def __init__(self, context, config, config_only=False):
+        self.context = context
 
-        stacks = self.read_config(config, environment)
-        self.read_stacks(stacks, environment, profile)
+        stacks = self.read_config(config)
+
+        if not config_only:
+            self.read_stacks(stacks)
 
         self.generate_configuration()
         
