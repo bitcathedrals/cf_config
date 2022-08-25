@@ -1,11 +1,7 @@
-# Copyright Michael Mattie (2022) - michael.mattie.employers@gmail.com
+# Copyright Michael Mattie (2022) - codermattie@runbox.com
 
-from cfconfig.cloud_formation import CloudFormationTemplate, CloudFormationExecute, cloud_command, BUILD_PROFILE
+from cfconfig.cloud_formation import CloudFormationTemplate, CloudFormationExecute, AWScontext
 from cfconfig.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, ACCESS_TYPE, PARAMETER_ACCCOUNT
-
-import sys
-import argparse
-from pprint import pprint
 
 from functools import cached_property
 
@@ -39,14 +35,14 @@ class CFBuildSystem(CloudFormationTemplate):
 
     environment = None
 
-    def __init__(self, environment, assume_resources=None, assume_whitelist=None):
+    def __init__(self, context, assume_resources=None, assume_whitelist=None):
         super().__init__(
-            environment,
+            context,
             System=SYSTEM_NAME,
             Component=COMPONENT_NAME
         )
         
-        self.environment = environment
+        self.environment = context.environment
 
         if assume_resources:
             self.assume_resources = assume_resources
@@ -178,67 +174,15 @@ class CFBuildSystem(CloudFormationTemplate):
             ],
         )
 
-if __name__ == '__main__':
+def template(context):
+    return CFBuildSystem(context)
 
-    parser = argparse.ArgumentParser(description='Construct a build role and user for using CloudFormation as a non-privelaged user.')
+def deploy(context, stack_name, template):
 
-    parser.add_argument(  
-                          'command',
-                            type=str,
-                            default='status',
-                            help="specify the command to run"
-                        )
-
-    parser.add_argument(
-                          'environment',
-                          type=str,
-                          default='dev',
-                          help="specify the environment to target"
-    )
-    
-    parser.add_argument(
-                            '-profile',
-                            type=str,
-                            dest='profile',
-                            nargs="?",
-                            default=BUILD_PROFILE,
-                            help='the AWS CLI profile to use for building'
-                        )
-
-    parser.add_argument(
-                            '-count', 
-                            type=int,
-                            dest='count',
-                            nargs="?",
-                            default=10,
-                            help='count of entries to return from stack inspection operations'
-                        )
-
-    parser.add_argument(
-                            '-path',
-                            type=str,
-                            dest='config_file',
-                            nargs="?",
-                            help='the file path to merge the new output values to'
-                        )
-
-    parser.add_argument(
-                            '-debug', 
-                            dest='debug', 
-                            default=False, 
-                            action='store_true'
-                        )
-
-    args = parser.parse_args()
-
-    cloud = CloudFormationExecute(
-        STACK_NAME,
-        CFBuildSystem(args.environment),
-        args.environment,
-        profile=args.profile,
+    return CloudFormationExecute(
+        context,
+        stack_name,
+        template,
         System=SYSTEM_NAME,
         Component=COMPONENT_NAME
     )
-
-    if cloud_command(args, cloud):
-        cloud.wait_for_complete(quiet=False)
