@@ -90,7 +90,6 @@ case $1 in
     ;;
     "python")
         shift
-        pyenv exec python -c 'import sys;print(sys.path)'
         pyenv exec python $@
     ;;
     "run")
