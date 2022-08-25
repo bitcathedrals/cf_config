@@ -288,7 +288,7 @@ class CloudFormationExecute:
         kwargs['region'] = region
         kwargs['environment'] = environment
 
-        tags = build_tags(kwargs)
+        self.tags = build_tags(kwargs)
 
     @property
     def role_credentials(self):
