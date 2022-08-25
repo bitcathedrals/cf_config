@@ -174,7 +174,7 @@ class CFBuildSystem(CloudFormationTemplate):
             ],
         )
 
-def deploy(profile, environment, template=True):
+def deploy(role, profile, environment, stack, template):
 
     if template:
         cloud_formation = CFBuildSystem(environment)
@@ -182,9 +182,10 @@ def deploy(profile, environment, template=True):
         cloud_formation = None
 
     return CloudFormationExecute(
-        STACK_NAME,
+        stack,
         cloud_formation,
         environment,
+        role=role,
         profile=profile,
         System=SYSTEM_NAME,
         Component=COMPONENT_NAME
