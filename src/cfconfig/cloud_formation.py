@@ -6,14 +6,12 @@ import logging
 import boto3
 from botocore.config import Config
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from functools import cached_property
 
 from pprint import pprint
 from time import sleep
-from json import loads, dumps
-
-ENVIRONMENTS = ['dev', 'test', 'pre', 'prod']
+from json import dumps
 
 DEFAULT_REGION = 'us-west-2'
 DEBUG_STREAM = 'boto3.resources'
@@ -40,8 +38,7 @@ BUILT_IN_PROGRESS_STATUS = ['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS', 'ROLLBAC
 
 CF_RESOURCE = 'cloudformation'
 
-DEFAULT_EVENT_LIMIT = 100
-DEFAULT_STACK_LIMIT = 1000
+AWScontext = namedtuple('AWScontext', ['role', 'profile', 'environment'])
 
 def build_tags(given_tags):
     tags = []
@@ -62,11 +59,8 @@ class CloudFormationTemplate(ABC):
     env = None
     tags = []
 
-    def __init__(self, environment, **tags):
-        if environment not in ENVIRONMENTS:
-            raise ValueError("Environment '%s' is not supported" % environment)
-
-        self.env = environment
+    def __init__(self, context, **tags):
+        self.env = context.environment
         self.tags = build_tags(tags)
 
     def build_output(self, key, value):
@@ -236,37 +230,28 @@ def cf_default_config(region, retries=6, mode='standard'):
 class CloudFormationExecute:
     environment = None
 
+    context = None
     stack_name = None
-    config = None 
 
-    profile = None
-    role = None
+    config = None 
 
     tags = []
 
     template = None
 
-    environment = None
-
     def __init__(
-        self, 
+        self,
+        context,
         stack_name, 
         template,
-        environment,
         region=DEFAULT_REGION,
-        role=None, 
-        profile=BUILD_PROFILE, 
         config=None, 
         debug=False,
         **kwargs
     ):
-        if environment not in ENVIRONMENTS:
-            raise ValueError("Environment '%s' is not supported" % environment)
-
+        self.context = context
         self.stack_name = stack_name
-
         self.template = template
-        self.environment = environment
 
         if config:
             self.config = config
@@ -274,11 +259,8 @@ class CloudFormationExecute:
             self.config = cf_default_config(region)
 
         session_default = {
-            'profile_name': profile
+            'profile_name': context.profile
         }
-
-        self.profile = profile
-        self.role = role
             
         boto3.setup_default_session(**session_default)
 
@@ -286,7 +268,7 @@ class CloudFormationExecute:
             boto3.set_stream_logger(DEBUG_STREAM, logging.DEBUG)
 
         kwargs['region'] = region
-        kwargs['environment'] = environment
+        kwargs['environment'] = context.environment
 
         self.tags = build_tags(kwargs)
 
@@ -295,7 +277,7 @@ class CloudFormationExecute:
         sts_client = boto3.client('sts')
 
         assume = sts_client.assume_role(
-            RoleArn=self.role,
+            RoleArn=self.context.role,
             RoleSessionName="CFBuildSession"
         )
 
@@ -320,7 +302,7 @@ class CloudFormationExecute:
 
     @cached_property
     def resource(self):
-        if self.profile == 'root':
+        if self.context.profile == 'root':
             return self.root_resource                                      
 
         return self.role_resource
@@ -542,13 +524,3 @@ def cloud_command(executor, command, limit=None):
 
     print("unknown command: %s" % command)
     return False
-
-
-
-
-
-
-
-
-
-

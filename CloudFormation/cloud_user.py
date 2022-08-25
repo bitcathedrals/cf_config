@@ -1,6 +1,6 @@
 # Copyright Michael Mattie (2022) - codermattie@runbox.com
 
-from cfconfig.cloud_formation import CloudFormationTemplate, CloudFormationExecute
+from cfconfig.cloud_formation import CloudFormationTemplate, CloudFormationExecute, AWScontext
 from cfconfig.cloud_formation import USER_TYPE, GROUP_TYPE, ROLE_TYPE, ACCESS_TYPE, PARAMETER_ACCCOUNT
 
 from functools import cached_property
@@ -35,14 +35,14 @@ class CFBuildSystem(CloudFormationTemplate):
 
     environment = None
 
-    def __init__(self, environment, assume_resources=None, assume_whitelist=None):
+    def __init__(self, context, assume_resources=None, assume_whitelist=None):
         super().__init__(
-            environment,
+            context,
             System=SYSTEM_NAME,
             Component=COMPONENT_NAME
         )
         
-        self.environment = environment
+        self.environment = context.environment
 
         if assume_resources:
             self.assume_resources = assume_resources
@@ -174,19 +174,15 @@ class CFBuildSystem(CloudFormationTemplate):
             ],
         )
 
-def deploy(role, profile, environment, stack, template):
+def template(context):
+    return CFBuildSystem(context)
 
-    if template:
-        cloud_formation = CFBuildSystem(environment)
-    else:
-        cloud_formation = None
+def deploy(context, stack_name, template):
 
     return CloudFormationExecute(
-        stack,
-        cloud_formation,
-        environment,
-        role=role,
-        profile=profile,
+        context,
+        stack_name,
+        template,
         System=SYSTEM_NAME,
         Component=COMPONENT_NAME
     )
