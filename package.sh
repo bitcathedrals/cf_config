@@ -20,17 +20,15 @@ function add_src {
 
     test -d $site || mkdir -p $site
     echo "$PWD/src/" >"$site/dev.pth"
-    echo "$PWD/scripts/" >>"$site/dev.pth"
+    echo "$PWD/src/scripts/" >>"$site/dev.pth"
 }
 
 function remove_src {
     site=`pyenv exec python -c 'import site; print(site.getsitepackages()[0])'`
 
-    echo "include_src: setting dev.pth in $site/dev.pth"
+    echo "remove_src: removing dev.pth from $site/dev.pth"
 
-    test -d $site || mkdir -p $site
-    echo "$PWD/src/" >"$site/dev.pth"
-    echo "$PWD/scripts/" >>"$site/dev.pth"
+    test -f "$site/dev.pth" && rm "$site/dev.pth"
 }
 
 case $1 in
