@@ -24,7 +24,7 @@ class CloudConfig:
         print(f"[%s]: adding key -> %s" % (source, key))
         self.table[key] = value
 
-    def read_stacks(self, stacks_list, environment, profile):
+    def read_stacks(self, stacks_list):
 
         for stack_name in stacks_list:
             stack = CloudFormationExecute(self.context,
