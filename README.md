@@ -1,6 +1,6 @@
 # CFconfig
 
-CFconfig is a paradigm of combining deployment with configuration.
+cfconfig is a paradigm of combining deployment with configuration.
 
 The problem that cf-config solves is that deployment and configuration
 are two sides of the same coin. Critical configuration parameters such
@@ -11,9 +11,9 @@ config classes. This is extremely error prone and causes hard to detect
 errors where the application seems to work initialy but has suble bugs
 the arise later due to using old versions of resources.
 
-## The cf_config approach
+## The cfconfig approach
 
-cf_config changes this by providing an API for Object Oriented construction
+cfconfig changes this by providing an API for Object Oriented construction
 of templates and stacks. Using this API it is easy to build secure stacks.
 
 Configuration is baked into the application by generating python configuration
