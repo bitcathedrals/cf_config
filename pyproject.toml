@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 
 name = "cfconfig"
-version = "0.7.1"
+version = "0.8.0"
 
 license = { file = "LICENSE" }
 
@@ -14,11 +14,14 @@ readme = "README.md"
 description = "CloudFormation configuration and deployment."
 authors = [ { name = "Michael Mattie" , email = "codermattie@runbox.com" } ]
 
+dependencies = [ "boto3 > 1.24, < 1.25" ]
+
 [project.urls]
 homepage = "https://github.com/coderofmattie/cf_config"
 repository = "https://github.com/coderofmattie/cf_config.git"
 
 [project.scripts]
-awsconfig = "scripts.makeconfig:exec"
+makeconfig = "cfconfig.makeconfig:exec"
+makedeploy = "cfconfig.makedeploy:exec"
 
 

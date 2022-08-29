@@ -27,7 +27,7 @@ through the constant interface dynamically retrieving and caching secrets.
 I learn best by example so here are some examples.
 
 Here is a template to create users with privelages for cloudformation
-without having access to root credentials: [deploy.py](CloudFormation/cloud_user.py)
+without having access to root credentials: [cloud_user.py](CloudFormation/cloud_user.py)
 
 First you have to setup the development environment
 
