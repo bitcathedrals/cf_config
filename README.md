@@ -35,19 +35,6 @@ switch_dev
 ./py.sh paths
 ```
 
-## Deploying
-
-```bash
-makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
-```
-
-- ROLE = ARN of a role to access CloudFormation
-- PROFILE - AWS credentials profile that also includes region
-- ENVIRONMENT - the environment, scub as "env", "test", or "production"
-- DIR - "directory containing the template module
-- MODULE - name of the template module
-- COMMAND - one of the make deploy commands listed below
-
 ### A CFconfig module
 
 A CFconfig module is a module that uses cloud_formation to create templates and deploy
@@ -80,9 +67,20 @@ def deploy(context, stack_name, template):
 CFconfig can't simply do the deploy function for
 you since you need to pass your tags to the constructor so the stack is tagged correctly.
 
-Here System and Component are tags.
+In this example System and Component are tags.
 
-### makedeploy commands
+## Deploying
+
+```bash
+makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
+```
+
+- ROLE = ARN of a role to access CloudFormation
+- PROFILE - AWS credentials profile that also includes region
+- ENVIRONMENT - the environment, scub as "env", "test", or "production"
+- DIR - "directory containing the template module
+- MODULE - name of the template module
+- COMMAND - one of the make deploy commands listed below
 
 Makedeploy has several flags for working with modules and deploying them:
 
@@ -155,7 +153,7 @@ BUILDSYSTEMUSERARN="arn:aws:iam::324189914596:user/devConfigDeployUser"
 BUILDSYSTEMUSERNAME="devConfigDeployUser"
 ```
 
-### Practices
+## Practices
 
 Each template should have a configuration per environment such as
 - example-dev.py
@@ -256,11 +254,11 @@ def construct(self):
                 "BuildSystemGroupName",
                 self.group_name
             )
-				]
-		)
+ 		]
+	)
 ```
 
-## CloudFormationTemplate hooks
+### CloudFormationTemplate hooks
 
 ```python
 def template(context):
