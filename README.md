@@ -55,7 +55,16 @@ Them.
 
 It is expected to have two functions:
 - template(AWSContext): = a function that returns a template object using the AWSContext parameter and the CloudFormationTemplate Abstract Base Class.
-- deploy(context, stack_name, template): = a function to create the deploy object. An example below
+- deploy(context, stack_name, template): = a function to create the deploy object. 
+
+An example below, first an example of template:
+
+```python
+def template(context):
+    return CFBuildSystem(context)
+```
+
+And second an example of deploy:
 
 ```python
 def deploy(context, stack_name, template):
