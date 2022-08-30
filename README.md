@@ -259,6 +259,7 @@ def construct(self):
 				]
 		)
 ```
+
 ## CloudFormationTemplate hooks
 
 ```python
@@ -281,14 +282,7 @@ Along with the template you need to define two hooks
 - deploy = return an execute object
 
 The CloudFormationExecute object is created with the AWScontext named tuple which takes (role, profile, and environment), the stack name, and the template, and any remaining keyword arguments are tags for the stack.
-  
-## Deployment with CloudFormationExecute
 
-Deployment is via the makedeploy script. Here is an example.
-
-```bash
-makedeploy $ROLE $PROFILE $ENVIRONMENT src/CloudFormation cloud_user $CONFIG  
-```
 
 
 
