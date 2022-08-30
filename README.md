@@ -69,7 +69,11 @@ you since you need to pass your tags to the constructor so the stack is tagged c
 
 In this example System and Component are tags.
 
-## Deploying
+## Tools
+
+There are two tools provided by cfconfig: makedeploy for building CloudFormation stacks, and makeconfig for making python configuration modules.
+
+### makedeploy
 
 ```bash
 makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
@@ -82,7 +86,7 @@ makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
 - MODULE - name of the template module
 - COMMAND - one of the make deploy commands listed below
 
-Makedeploy has several flags for working with modules and deploying them:
+makedeploy has several commands for working with modules and deploying them:
 
 ```bash
 -> template-json: print the json of the template
@@ -96,10 +100,21 @@ Makedeploy has several flags for working with modules and deploying them:
 
 The commands are pretty self explanatory. The most important ones are build which does a CloudFormation create or update depending on wether the stack exists or not, status which prints the last event, events to see the events, and output-json to get the stack outputs in JSON format.
 
+If you build cloud_user.py with this you will have a user and credentials that is restricted to accessing CloudFormation.
+
 ### makeconfig
 
-makeconfig is a little simpler in that it uses
-A config to specify some of the values. You need a JSON file like below 
+makeconfig is a little simpler than makedeploy in that it uses a config to specify some of the values.
+
+Invoking it is pretty simple:
+
+```bash
+makeconfig <ROLE> <PROFILE> <ENVIRONMENT> <CONFIG.json>
+
+--ouptut=FILE (optional)
+```
+
+By default it prints the config but if you want to specify an output file you can with --output=<FILE>.
 
 To generate a configuration module you create a [cloud-config.json](tests/cloud-config.json)
 file listing the environment, the stacks to include, and the parameters to
@@ -118,18 +133,6 @@ generate.
 
 The first key is the environment. Within an environment is a list of stacks to generate the config from, a ignore list to mask sensitive keys,
 and any static configuration values as key/value pairs. 
-
-Invoking it is pretty simple:
-
-```bash
-makeconfig <ROLE> <PROFILE> <ENVIRONMENT> <CONFIG.json>
-
---ouptut=FILE (optional)
-```
-
-By default it prints the config but if you want to specify an output file you can with --output=<FILE>.
-
-If you build cloud_user.py with this you will have a user and credentials that is restricted to accessing CloudFormation.
 
 Output of running tests/test-config.sh will look something like this after you edit it to have the
 correct ARN for the role:
@@ -167,12 +170,16 @@ When run for each environment I suggest symlinking a single name to the config: 
 CloudFormation templates are constructed with the CloudFormationTemplate abstract base class
 
 ```python
-from cfconfig import CloudFormationTemplate
+from cfconfig import CloudFormationTemplate, AWScontext
 ```
+
+First the import. 
 
 ```python
 def build_output(self, key, value):
 ```
+
+### CloudFormationTemplate builders.
 
 build an CF output, key and value
 
