@@ -182,7 +182,7 @@ def build_reference(self, name, env=None):
 Build a CF reference out of a logical resource name
 
 ```python
-    def build_resource(self, name, resource_type, *policies, path=None, depends=None, **properties):
+def build_resource(self, name, resource_type, *policies, path=None, depends=None, **properties):
 ```
 
 Build a resource with (name), resource type:
@@ -228,27 +228,27 @@ def construct():
 The abstract method you have to override is "construct". It takes no arguments and here you should build the template.
 
 ```python
-   def construct(self):
-        self.build_template(
-            [
-                self.build_resource(
-                    self.IAM_ROLE,
-                    ROLE_TYPE,
-                    self.build_role_policy(),
-                    RoleName=self.iam_role,
-                    AssumeRolePolicyDocument=self.build_role_assume_policy()
-                )
-            ],
+def construct(self):
+    self.build_template(
+        [
+            self.build_resource(
+                self.IAM_ROLE,
+                ROLE_TYPE,
+                self.build_role_policy(),
+                RoleName=self.iam_role,
+                AssumeRolePolicyDocument=self.build_role_assume_policy()
+            )
+        ],
 
-            [],
+        [],
 
-            [
-                self.build_output(
-                    "BuildSystemGroupName",
-                    self.group_name
-                ),
-					]
-			)
+        [
+            self.build_output(
+                "BuildSystemGroupName",
+                self.group_name
+            )
+				]
+		)
 ```
 ## CloudFormationTemplate hooks
 
