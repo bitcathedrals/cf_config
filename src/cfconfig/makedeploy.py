@@ -68,7 +68,7 @@ def exec():
     parser.add_argument("profile", help="aws credentials profile (required)")
     parser.add_argument("environment", help="AWS environment (required)")
     parser.add_argument("dir", help="directory containing the CFconfig module")
-    parser.add_argument("module", help="module containing a deploy(role, profile, environment, stack, template=True|False) hook")
+    parser.add_argument("module", help="module containing a deploy hook")
     parser.add_argument("config", help="a cloud-config.json file")
 
     parser.add_argument("command", help="execute [command]")
