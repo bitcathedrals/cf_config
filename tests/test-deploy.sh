@@ -5,4 +5,4 @@ PROFILE=dev
 ENVIRONMENT=dev
 
 CONFIG=tests/cloud-config.json
-exec ./package.sh python -m makedeploy $ROLE $PROFILE $ENVIRONMENT CloudFormation cloud_user $CONFIG $@
+makedeploy $ROLE $PROFILE $ENVIRONMENT src/cfconfig/CloudFormation cloud_user $CONFIG
