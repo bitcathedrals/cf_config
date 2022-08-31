@@ -43,7 +43,7 @@ makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
 
 - ROLE = ARN of a role to access CloudFormation
 - PROFILE - AWS credentials profile that also includes region
-- ENVIRONMENT - the environment, scub as "env", "test", or "production"
+- ENVIRONMENT - the environment, such as "env", "test", or "production"
 - DIR - "directory containing the template module
 - MODULE - name of the template module
 - COMMAND - one of the make deploy commands listed below
@@ -256,8 +256,8 @@ def construct(self):
                 "BuildSystemGroupName",
                 self.group_name
             )
-				]
-		)
+		]
+	)
 ```
 
 ## CloudFormationTemplate hooks
