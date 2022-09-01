@@ -35,6 +35,19 @@ switch_dev
 ./py.sh paths
 ```
 
+## Deploying
+
+```bash
+makedeploy <ROLE> <PROFILE> <ENVIRONMENT> <DIR> <MODULE> <COMMAND>
+```
+
+- ROLE = ARN of a role to access CloudFormation
+- PROFILE - AWS credentials profile that also includes region
+- ENVIRONMENT - the environment, such as "env", "test", or "production"
+- DIR - "directory containing the template module
+- MODULE - name of the template module
+- COMMAND - one of the make deploy commands listed below
+
 ### A CFconfig module
 
 A CFconfig module is a module that uses cloud_formation to create templates and deploy
