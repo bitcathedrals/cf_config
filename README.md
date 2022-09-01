@@ -216,7 +216,7 @@ Properties are specified as keyword arguments to the method.
 def build_statement(self, actions, resources=[], permission="Allow", deny_other=False, **extra_args):
 ```
 
-Statements are policy statements constructed with actions which is a single action, or multiple actions in an array. Resources is an array of the resources affected by this policy. Permission defaults to allow. deny_other automatically creates a inverse DENY policy for security best practices.
+Statements are policy statements constructed with actions which is a single action, or multiple actions in an array. Resources is an array of the resources affected by this policy. Permission defaults to allow. deny_other automatically creates an inverse DENY policy for security best practices.
 
 Extra args can be given such as principal.
 
